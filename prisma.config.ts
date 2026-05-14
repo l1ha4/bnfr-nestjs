@@ -6,7 +6,7 @@ import dotenvExpand from 'dotenv-expand'
 dotenvExpand.expand(dotenv.config())
 
 export default defineConfig({
-  schema: 'prisma/schema.prisma',
+  schema: 'prisma/schema',
   datasource: {
     url: process.env.POSTGRES_URI,
   },

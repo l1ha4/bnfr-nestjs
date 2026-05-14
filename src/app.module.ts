@@ -1,9 +1,11 @@
+import { AdminModule } from './app/admin/admin-module.module'
 import { Module } from '@nestjs/common'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { ConfigModule } from '@nestjs/config'
-import { PrismaModule } from '@/prisma/prisma.module'
-import { APP_MODULES } from './app/app.index'
+import { PrismaModule } from '@/core/prisma/prisma.module'
+import { RouterModule } from '@nestjs/core'
+import { router } from './core/router/router'
 
 @Module({
   imports: [
@@ -11,7 +13,9 @@ import { APP_MODULES } from './app/app.index'
       isGlobal: true,
     }),
     PrismaModule,
-    ...APP_MODULES,
+    AdminModule,
+
+    RouterModule.register(router),
   ],
   controllers: [AppController],
   providers: [AppService],
