@@ -7,12 +7,17 @@ import {
 import { DsBot } from '@prisma/client'
 import { CreateDsBotDto } from './dto/createDsBot.dto'
 import { DsBotManagerService } from '../manager/ds-bot.manager.service'
+import { DsBotTokenCryptoService } from '../manager/crypto/ds-bot-token-crypto.service'
+import { DsBotGuildSettingsService } from '../settings/ds-bot-guild-settings.service';
+import { UpdateDsBotGuildSettingsDto } from './dto/createDsBotGuildSettings.dto';
 
 @Injectable()
 export class DsBotService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly dsBotManager: DsBotManagerService,
+    private readonly tokenCrypto: DsBotTokenCryptoService,
+    private readonly guildSettings: DsBotGuildSettingsService,
   ) {}
 
   async findAll() {
@@ -37,10 +42,11 @@ export class DsBotService {
 
   async add(dto: CreateDsBotDto): Promise<boolean> {
     const { secretTokenBot } = dto
+    const encryptedToken = this.tokenCrypto.encrypt(secretTokenBot)
 
     const dsBot = await this.prismaService.dsBot.findFirst({
       where: {
-        secretTokenBot,
+        secretTokenBot: encryptedToken,
       },
     })
 
@@ -48,7 +54,7 @@ export class DsBotService {
 
     const newDsBot = await this.prismaService.dsBot.create({
       data: {
-        secretTokenBot,
+        secretTokenBot: encryptedToken,
       },
     })
 
@@ -60,7 +66,7 @@ export class DsBotService {
   async delete(id: string): Promise<boolean> {
     const dsBot = await this.findById(id)
 
-    await this.dsBotManager.stopBot(dsBot.secretTokenBot)
+    await this.dsBotManager.stopBot(dsBot.id)
 
     await this.prismaService.dsBot.delete({
       where: {
@@ -70,4 +76,6 @@ export class DsBotService {
 
     return true
   }
+
+
 }

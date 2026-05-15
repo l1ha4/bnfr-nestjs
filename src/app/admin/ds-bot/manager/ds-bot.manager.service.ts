@@ -1,28 +1,41 @@
-import { Injectable } from '@nestjs/common'
-import { Client, GatewayIntentBits } from 'discord.js'
+import { Injectable, Logger } from '@nestjs/common'
+import { Client, Events, GatewayIntentBits } from 'discord.js'
+import { DsBotProfileSyncService } from '../sync/ds-bot/ds-bot-profile.sync.service'
+import { DsBotTokenCryptoService } from './crypto/ds-bot-token-crypto.service'
+import { DsBotSyncService } from '../sync/ds-bot.sync.service'
+import { DsBotEventsService } from '../events/ds-bot-event.service'
 
 @Injectable()
 export class DsBotManagerService {
+  private readonly logger = new Logger(DsBotManagerService.name)
+
   private readonly clients = new Map<string, Client>()
 
-  async startBot(botId: string, token: string) {
-    if (this.clients.has(botId)) {
-      return
-    }
+  constructor(
+    private readonly profileSync: DsBotProfileSyncService,
+    private readonly tokenCrypto: DsBotTokenCryptoService,
+    private readonly dsBotSync: DsBotSyncService,
+    private readonly events: DsBotEventsService,
+  ) {}
 
+  async startBot(botId: string, secretTokenBot: string) {
+    const token = this.tokenCrypto.decrypt(secretTokenBot)
     const client = new Client({
-      intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-      ],
+      intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
     })
 
-    client.once('ready', () => {
-      console.log(`Bot ${client.user?.tag} started`)
+    client.once(Events.ClientReady, async (readyClient) => {
+      await this.profileSync.syncOnce(botId, readyClient)
+      this.profileSync.startAutoSync(botId, readyClient)
+
+      await this.dsBotSync.syncBotGuilds(botId, readyClient)
+
+      this.events.register(botId, readyClient)
     })
 
     await client.login(token)
+
+    
 
     this.clients.set(botId, client)
   }
@@ -34,6 +47,7 @@ export class DsBotManagerService {
 
     client.destroy()
     this.clients.delete(botId)
+    this.profileSync.stopAutoSync(botId)
 
     client.once('ready', () => {
       console.log(`Bot ${client.user?.tag} stoped`)

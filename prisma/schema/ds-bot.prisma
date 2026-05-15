@@ -1,15 +1,192 @@
 model DsBot {
   id String @id @default(uuid())
 
-  secretTokenBot String @unique @map("token_secret_bot")
+  secretTokenBot String  @unique @map("token_secret_bot")
+  name           String?
+  avatarUrl      String? @map("avatar_url")
+  isActive       Boolean @default(true) @map("is_active")
 
-  isActive Boolean? @default(true) @map("is_active")
-
-  name      String?
-  avatarUrl String? @map("avatar_url")
+  guildConnections DsBotGuildConnection[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("ds_bots")
+}
+
+model DsGuild {
+  id String @id @default(uuid())
+
+  guildId String @unique @map("guild_id")
+
+  name        String
+  iconUrl     String? @map("icon_url")
+  ownerId     String? @map("owner_id")
+  memberCount Int     @default(0) @map("member_count")
+
+  connections DsBotGuildConnection[]
+
+  members DsGuildMember[]
+  roles   DsGuildRole[]
+  channels DsGuildChannel[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("ds_guilds")
+}
+
+model DsBotGuildConnection {
+  id String @id @default(uuid())
+
+  botId String @map("bot_id")
+  bot   DsBot  @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  guildDbId String       @map("guild_db_id")
+  guild     DsGuild @relation(fields: [guildDbId], references: [id], onDelete: Cascade)
+
+  isActive Boolean @default(true) @map("is_active")
+
+  settings DsBotGuildSettings?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([botId, guildDbId])
+  @@map("ds_bot_guild_connections")
+}
+
+model DsUser {
+  id String @id @default(uuid())
+
+  userId String @unique @map("user_id")
+
+  username   String
+  globalName String? @map("global_name")
+  avatarUrl  String? @map("avatar_url")
+
+  isBot Boolean @default(false) @map("is_bot")
+
+  guildMemberships DsGuildMember[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("ds_users")
+}
+
+model DsGuildMember {
+  id String @id @default(uuid())
+
+  guildDbId String       @map("guild_db_id")
+  guild     DsGuild @relation(fields: [guildDbId], references: [id], onDelete: Cascade)
+
+  userDbId String      @map("user_db_id")
+  user     DsUser @relation(fields: [userDbId], references: [id], onDelete: Cascade)
+
+  displayName String? @map("display_name")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  joinedAt DateTime? @map("joined_at")
+
+  roles DsGuildMemberRole[]
+
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([guildDbId, userDbId])
+  @@map("ds_guild_members")
+}
+
+model DsGuildMemberRole {
+  memberId String @map("member_id")
+  roleId   String @map("role_id")
+
+  member DsGuildMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  role   DsGuildRole   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([memberId, roleId])
+  @@map("ds_guild_member_roles")
+}
+
+model DsGuildRole {
+  id String @id @default(uuid())
+
+  guildDbId String       @map("guild_db_id")
+  guild     DsGuild @relation(fields: [guildDbId], references: [id], onDelete: Cascade)
+
+  roleId String @map("role_id")
+
+  name      String
+  color     Int?
+  position  Int
+  isManaged Boolean @default(false) @map("is_managed")
+  isActive  Boolean @default(true) @map("is_active")
+
+  members DsGuildMemberRole[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([guildDbId, roleId])
+  @@map("ds_guild_roles")
+}
+
+model DsBotGuildSettings {
+  id String @id @default(uuid())
+
+  connectionId String               @unique @map("connection_id")
+  connection   DsBotGuildConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  voiceTrackingEnabled Boolean @default(false) @map("voice_activity_tracking_enabled")
+  messageModuleEnabled Boolean @default(false) @map("message_module_enabled")
+  autoRoleEnabled      Boolean @default(false) @map("auto_role_enabled")
+  tempVoiceEnabled     Boolean @default(false) @map("temp_voice_enabled")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("ds_bot_guild_settings")
+}
+
+model DsGuildChannel {
+  id String @id @default(uuid())
+
+  guildDbId String       @map("guild_db_id")
+  guild     DsGuild @relation(fields: [guildDbId], references: [id], onDelete: Cascade)
+
+  channelId String @map("channel_id")
+
+  name String?
+  type DiscordGuildChannelType
+
+  position Int?
+  parentChannelId String? @map("parent_channel_id")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([guildDbId, channelId])
+  @@map("ds_guild_channels")
+}
+
+enum DiscordGuildChannelType {
+  TEXT
+  VOICE
+  CATEGORY
+  ANNOUNCEMENT
+  STAGE_VOICE
+  FORUM
+  MEDIA
+  THREAD_PUBLIC
+  THREAD_PRIVATE
+  THREAD_ANNOUNCEMENT
+  DIRECTORY
+  UNKNOWN
 }
