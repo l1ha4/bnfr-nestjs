@@ -8,8 +8,7 @@ import { DsBot } from '@prisma/client'
 import { CreateDsBotDto } from './dto/createDsBot.dto'
 import { DsBotManagerService } from '../manager/ds-bot.manager.service'
 import { DsBotTokenCryptoService } from '../manager/crypto/ds-bot-token-crypto.service'
-import { DsBotGuildSettingsService } from '../settings/ds-bot-guild-settings.service';
-import { UpdateDsBotGuildSettingsDto } from './dto/createDsBotGuildSettings.dto';
+import { DsBotGuildSettingsService } from '../settings/ds-bot-guild-settings.service'
 
 @Injectable()
 export class DsBotService {
@@ -76,6 +75,4 @@ export class DsBotService {
 
     return true
   }
-
-
 }

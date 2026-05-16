@@ -13,8 +13,21 @@ services:
     networks:
       - bnfr-nestjs
 
+  redis:
+    container_name: redis-bnfr
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - bnfr-nestjs
+
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   bnfr-nestjs:
