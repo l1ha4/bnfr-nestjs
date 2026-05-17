@@ -26,8 +26,8 @@ model DsGuild {
 
   connections DsBotGuildConnection[]
 
-  members DsGuildMember[]
-  roles   DsGuildRole[]
+  members  DsGuildMember[]
+  roles    DsGuildRole[]
   channels DsGuildChannel[]
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -42,7 +42,7 @@ model DsBotGuildConnection {
   botId String @map("bot_id")
   bot   DsBot  @relation(fields: [botId], references: [id], onDelete: Cascade)
 
-  guildDbId String       @map("guild_db_id")
+  guildDbId String  @map("guild_db_id")
   guild     DsGuild @relation(fields: [guildDbId], references: [id], onDelete: Cascade)
 
   isActive Boolean @default(true) @map("is_active")
@@ -65,7 +65,8 @@ model DsUser {
   globalName String? @map("global_name")
   avatarUrl  String? @map("avatar_url")
 
-  isBot Boolean @default(false) @map("is_bot")
+  isBot     Boolean @default(false) @map("is_bot")
+  isUserBot Boolean @default(false) @map("is_user_bot")
 
   guildMemberships DsGuildMember[]
 
@@ -78,10 +79,10 @@ model DsUser {
 model DsGuildMember {
   id String @id @default(uuid())
 
-  guildDbId String       @map("guild_db_id")
+  guildDbId String  @map("guild_db_id")
   guild     DsGuild @relation(fields: [guildDbId], references: [id], onDelete: Cascade)
 
-  userDbId String      @map("user_db_id")
+  userDbId String @map("user_db_id")
   user     DsUser @relation(fields: [userDbId], references: [id], onDelete: Cascade)
 
   displayName String? @map("display_name")
@@ -91,7 +92,6 @@ model DsGuildMember {
   joinedAt DateTime? @map("joined_at")
 
   roles DsGuildMemberRole[]
-
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -116,7 +116,7 @@ model DsGuildMemberRole {
 model DsGuildRole {
   id String @id @default(uuid())
 
-  guildDbId String       @map("guild_db_id")
+  guildDbId String  @map("guild_db_id")
   guild     DsGuild @relation(fields: [guildDbId], references: [id], onDelete: Cascade)
 
   roleId String @map("role_id")
@@ -156,7 +156,7 @@ model DsBotGuildSettings {
 model DsGuildChannel {
   id String @id @default(uuid())
 
-  guildDbId String       @map("guild_db_id")
+  guildDbId String  @map("guild_db_id")
   guild     DsGuild @relation(fields: [guildDbId], references: [id], onDelete: Cascade)
 
   channelId String @map("channel_id")
@@ -164,7 +164,7 @@ model DsGuildChannel {
   name String?
   type DiscordGuildChannelType
 
-  position Int?
+  position        Int?
   parentChannelId String? @map("parent_channel_id")
 
   isActive Boolean @default(true) @map("is_active")

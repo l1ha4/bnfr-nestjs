@@ -1,7 +1,6 @@
 import 'dotenv/config'
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
-import IORedis from 'ioredis'
 import cookieParser from 'cookie-parser'
 import { ConfigService } from '@nestjs/config'
 import { ValidationPipe } from '@nestjs/common'
@@ -9,6 +8,7 @@ import session from 'express-session'
 import ms, { StringValue } from 'ms'
 import { parseBoolean } from './common/utils/parse-boolean.utils'
 import { RedisStore } from 'connect-redis'
+import { createClient } from 'redis'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
@@ -16,7 +16,15 @@ async function bootstrap() {
   const config = app.get(ConfigService)
 
   app.use(cookieParser(config.getOrThrow<string>('COOKIE_SECRET')))
-  const redis = new IORedis(config.getOrThrow('REDIS_URI'))
+  const redis = createClient({
+    url: config.getOrThrow<string>('REDIS_URI'),
+  })
+
+  redis.on('error', (err) => {
+    console.error('Redis Client Error', err)
+  })
+
+  await redis.connect()
 
   app.useGlobalPipes(
     new ValidationPipe({

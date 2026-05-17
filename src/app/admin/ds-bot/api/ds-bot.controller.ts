@@ -1,11 +1,15 @@
 import { Body, Controller, Delete, Get, Param, Post } from '@nestjs/common'
 import { DsBotService } from './ds-bot.service'
 import { CreateDsBotDto } from './dto/createDsBot.dto'
-import { UpdateDsBotGuildSettingsDto } from './dto/createDsBotGuildSettings.dto'
 
 @Controller()
 export class DsBotController {
   constructor(private readonly dsBotService: DsBotService) {}
+
+  @Get('all')
+  all() {
+    return this.dsBotService.findAll()
+  }
 
   @Post('add')
   add(@Body() dto: CreateDsBotDto) {
