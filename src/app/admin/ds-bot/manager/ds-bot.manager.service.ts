@@ -21,7 +21,7 @@ export class DsBotManagerService {
   async startBot(botId: string, secretTokenBot: string) {
     const token = this.tokenCrypto.decrypt(secretTokenBot)
     const client = new Client({
-      intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers],
+      intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildVoiceStates],
     })
 
     client.once(Events.ClientReady, async (readyClient) => {

@@ -91,7 +91,8 @@ model DsGuildMember {
 
   joinedAt DateTime? @map("joined_at")
 
-  roles DsGuildMemberRole[]
+  roles         DsGuildMemberRole[]
+  voiceSessions DsGuildVoiceSession[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -174,6 +175,32 @@ model DsGuildChannel {
 
   @@unique([guildDbId, channelId])
   @@map("ds_guild_channels")
+}
+
+model DsGuildVoiceSession {
+  id String @id @default(uuid())
+
+  guildDbId String @map("guild_db_id")
+  memberId  String @map("member_id")
+
+  channelId String @map("channel_id")
+
+  startedAt DateTime  @map("started_at")
+  endedAt   DateTime? @map("ended_at")
+
+  durationSeconds Int @default(0) @map("duration_seconds")
+
+  isActive Boolean @default(true) @map("is_active")
+
+  member DsGuildMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([guildDbId])
+  @@index([memberId])
+  @@index([channelId])
+  @@map("ds_guild_voice_sessions")
 }
 
 enum DiscordGuildChannelType {
