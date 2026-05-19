@@ -24,6 +24,14 @@ export class DsBotService {
       orderBy: {
         createdAt: 'desc',
       },
+      select: {
+        id: true,
+        isActive: true,
+        name: true,
+        avatarUrl: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     })
   }
 
