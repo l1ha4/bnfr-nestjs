@@ -1,5 +1,5 @@
-import { AuthMethod } from '@prisma/client'
-import { IsBoolean, IsNotEmpty, IsString } from 'class-validator'
+import { AuthMethod, UserRole } from '@prisma/client'
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 
 export class CreateUserDto {
   @IsString()
@@ -14,14 +14,22 @@ export class CreateUserDto {
   @IsNotEmpty()
   displayName!: string
 
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   picture!: string
 
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
   method!: AuthMethod
 
+  @IsOptional()
   @IsBoolean()
   isVerified!: boolean
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  role!: UserRole
 }

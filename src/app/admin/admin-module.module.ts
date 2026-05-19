@@ -1,13 +1,13 @@
 import { AdminController } from './admin.controller'
 import { Module } from '@nestjs/common'
 import { DsBotModule } from './ds-bot/ds-bot.module'
-import { OwnerSeedService } from './owner-seed.service'
+import { OwnerSeedService } from './owner/owner-seed.service'
+import { OwnerControlService } from './owner/owner-control.service'
 import { UserModule } from '../user/user.module'
 
 @Module({
   imports: [DsBotModule, UserModule],
   controllers: [AdminController],
-  providers: [OwnerSeedService],
-  exports: [],
+  providers: [OwnerSeedService, OwnerControlService],
 })
 export class AdminModule {}

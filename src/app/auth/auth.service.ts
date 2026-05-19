@@ -46,6 +46,7 @@ export class AuthService {
       picture: '',
       method: AuthMethod.CREDENTIALS,
       isVerified: false,
+      role: 'REGULAR',
     })
 
     this.logger.log(

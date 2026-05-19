@@ -46,6 +46,7 @@ export class UserService {
         picture: dto.picture,
         method: dto.method,
         isVerified: dto.isVerified,
+        role: dto.role ? dto.role : 'REGULAR',
       },
       include: {
         accounts: true,

@@ -1,5 +1,32 @@
-import { Controller } from '@nestjs/common'
-
+import {
+  Body,
+  Controller,
+  Delete,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+} from '@nestjs/common'
+import { OwnerControlService } from './owner/owner-control.service'
+import { CreateUserDto } from '../user/dto/createUser.dto'
+import { Authorization } from '../auth/decorators/auth.decorators'
+import { UserRole } from '@prisma/client'
 
 @Controller()
-export class AdminController {}
+export class AdminController {
+  constructor(private readonly ownerControlService: OwnerControlService) {}
+
+  @Authorization(UserRole.OWNER)
+  @Post('create-admin')
+  @HttpCode(HttpStatus.OK)
+  async createAdminUser(@Body() dto: CreateUserDto): Promise<boolean> {
+    return this.ownerControlService.createAdminUser(dto)
+  }
+
+  @Authorization(UserRole.OWNER)
+  @Delete('delete-admin/:userId')
+  @HttpCode(HttpStatus.OK)
+  async deleteAdminUser(@Param('userId') userId: string): Promise<boolean> {
+    return this.ownerControlService.deleteAdminUser(userId)
+  }
+}
