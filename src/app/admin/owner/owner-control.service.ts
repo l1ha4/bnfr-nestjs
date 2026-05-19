@@ -12,6 +12,19 @@ export class OwnerControlService {
     private readonly prisma: PrismaService,
   ) {}
 
+  async findAllAdmins() {
+    return this.prisma.user.findMany({
+      where: {
+        role: 'ADMIN',
+      },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+      },
+    })
+  }
+
   async createAdminUser(dto: CreateUserDto): Promise<boolean> {
     const existingUser = await this.userService.findByEmail(dto.email)
     if (existingUser) {

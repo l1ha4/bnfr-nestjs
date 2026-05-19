@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpCode,
   HttpStatus,
   Param,
@@ -10,11 +11,20 @@ import {
 import { OwnerControlService } from './owner/owner-control.service'
 import { CreateUserDto } from '../user/dto/createUser.dto'
 import { Authorization } from '../auth/decorators/auth.decorators'
-import { UserRole } from '@prisma/client'
+import { User, UserRole } from '@prisma/client'
 
 @Controller()
 export class AdminController {
   constructor(private readonly ownerControlService: OwnerControlService) {}
+
+  @Authorization(UserRole.OWNER)
+  @Get('all-admins')
+  @HttpCode(HttpStatus.OK)
+  async findAllAdmins(): Promise<
+    { id: string; displayName: string; email: string }[]
+  > {
+    return this.ownerControlService.findAllAdmins()
+  }
 
   @Authorization(UserRole.OWNER)
   @Post('create-admin')
