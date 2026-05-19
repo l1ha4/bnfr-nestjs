@@ -52,20 +52,10 @@ async function bootstrap() {
     }),
   )
 
-  const allowedOrigins = config
-    .getOrThrow<string>('ALLOWED_ORIGINS')
-    .split(',')
-    .map((origin) => origin.trim())
-
   app.enableCors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true)
-      } else {
-        callback(new Error('Not allowed by CORS'))
-      }
-    },
+    origin: config.getOrThrow<string>('ALLOWED_ORIGIN'),
     credentials: true,
+    exposedHeaders: ['set-cookie'],
   })
 
   await app.listen(config.getOrThrow<number>('APPLICATION_PORT'))
