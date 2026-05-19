@@ -1,4 +1,4 @@
-import { AdminModule } from './app/admin/admin-module.module'
+import { AdminModule } from './app/admin/admin.module'
 import { Module } from '@nestjs/common'
 
 import { ConfigModule } from '@nestjs/config'

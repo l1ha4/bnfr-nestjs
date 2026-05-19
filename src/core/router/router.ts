@@ -1,4 +1,4 @@
-import { AdminModule } from '@/app/admin/admin-module.module'
+import { AdminModule } from '@/app/admin/admin.module'
 import { DsBotModule } from '@/app/admin/ds-bot/ds-bot.module'
 import type { Routes } from '@nestjs/core'
 

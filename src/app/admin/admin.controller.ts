@@ -11,11 +11,15 @@ import {
 import { OwnerControlService } from './owner/owner-control.service'
 import { CreateUserDto } from '../user/dto/createUser.dto'
 import { Authorization } from '../auth/decorators/auth.decorators'
-import { User, UserRole } from '@prisma/client'
+import { UserRole } from '@prisma/client'
+import { AdminService } from './admin.service'
 
 @Controller()
 export class AdminController {
-  constructor(private readonly ownerControlService: OwnerControlService) {}
+  constructor(
+    private readonly ownerControlService: OwnerControlService,
+    private readonly adminService: AdminService,
+  ) {}
 
   @Authorization(UserRole.OWNER)
   @Get('all-admins')
