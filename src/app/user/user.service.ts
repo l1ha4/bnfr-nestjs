@@ -1,7 +1,12 @@
 import { PrismaService } from '@/core/prisma/prisma.service'
-import { Injectable } from '@nestjs/common'
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common'
 import { CreateUserDto } from './dto/createUser.dto'
 import { hash } from 'argon2'
+import { UserRole } from '@prisma/client'
 
 @Injectable()
 export class UserService {
@@ -17,7 +22,10 @@ export class UserService {
       },
     })
     if (!user) {
-      throw new Error(`Пользователь не найден`)
+      throw new NotFoundException(`Пользователь не найден`)
+    }
+    if (user.role !== UserRole.REGULAR) {
+      throw new ForbiddenException('Пользователь не является REGULAR')
     }
 
     const { password, ...result } = user
@@ -34,6 +42,10 @@ export class UserService {
       },
     })
 
+    if (user?.role !== UserRole.REGULAR) {
+      throw new ForbiddenException('Пользователь не является REGULAR')
+    }
+
     return user
   }
 
@@ -46,7 +58,7 @@ export class UserService {
         picture: dto.picture,
         method: dto.method,
         isVerified: dto.isVerified,
-        role: dto.role ? dto.role : 'REGULAR',
+        role: dto.role ? dto.role : UserRole.REGULAR,
       },
       include: {
         accounts: true,

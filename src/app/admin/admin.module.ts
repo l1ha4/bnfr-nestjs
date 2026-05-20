@@ -4,10 +4,11 @@ import { DsBotModule } from './ds-bot/ds-bot.module'
 import { OwnerSeedService } from './owner/owner-seed.service'
 import { OwnerControlService } from './owner/owner-control.service'
 import { UserModule } from '../user/user.module'
+import { AdminService } from './admin.service'
 
 @Module({
   imports: [DsBotModule, UserModule],
   controllers: [AdminController],
-  providers: [OwnerSeedService, OwnerControlService],
+  providers: [OwnerSeedService, OwnerControlService, AdminService],
 })
 export class AdminModule {}
