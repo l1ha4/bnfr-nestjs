@@ -5,6 +5,7 @@ model DsBot {
   name           String?
   avatarUrl      String? @map("avatar_url")
   isActive       Boolean @default(true) @map("is_active")
+  isLoadingSync  Boolean @default(true) @map("is_loading_sync")
 
   guildConnections DsBotGuildConnection[]
 

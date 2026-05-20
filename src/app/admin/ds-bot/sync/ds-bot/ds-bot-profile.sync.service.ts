@@ -8,10 +8,27 @@ export class DsBotProfileSyncService implements OnModuleDestroy {
   private readonly logger = new Logger(DsBotProfileSyncService.name)
 
   private readonly intervals = new Map<string, NodeJS.Timeout>()
+  private readonly inFlightSync = new Map<string, Promise<unknown>>()
 
   constructor(private readonly prisma: PrismaService) {}
 
   async syncOnce(botId: string, client: Client) {
+    const existingSync = this.inFlightSync.get(botId)
+
+    if (existingSync) {
+      return await existingSync
+    }
+
+    const syncPromise = this.performSync(botId, client).finally(() => {
+      this.inFlightSync.delete(botId)
+    })
+
+    this.inFlightSync.set(botId, syncPromise)
+
+    return await syncPromise
+  }
+
+  private async performSync(botId: string, client: Client) {
     const user = client.user
 
     if (!user) {
@@ -19,20 +36,42 @@ export class DsBotProfileSyncService implements OnModuleDestroy {
       return null
     }
 
+    await this.prisma.dsBot.updateMany({
+      where: {
+        id: botId,
+        isLoadingSync: false,
+      },
+      data: {
+        isLoadingSync: true,
+      },
+    })
+
     const avatarUrl = user.displayAvatarURL({
       extension: 'png',
       size: 256,
     })
 
-    return this.prisma.dsBot.update({
-      where: {
-        id: botId,
-      },
-      data: {
-        name: user.username,
-        avatarUrl,
-      },
-    })
+    try {
+      return await this.prisma.dsBot.update({
+        where: {
+          id: botId,
+        },
+        data: {
+          name: user.username,
+          avatarUrl,
+        },
+      })
+    } finally {
+      await this.prisma.dsBot.updateMany({
+        where: {
+          id: botId,
+          isLoadingSync: true,
+        },
+        data: {
+          isLoadingSync: false,
+        },
+      })
+    }
   }
 
   startAutoSync(botId: string, client: Client) {
@@ -40,13 +79,16 @@ export class DsBotProfileSyncService implements OnModuleDestroy {
       return
     }
 
-    const interval = setInterval(async () => {
-      try {
-        await this.syncOnce(botId, client)
-      } catch (error) {
-        this.logger.error(`Failed to auto sync bot profile: ${botId}`, error)
-      }
-    }, 1000 * 60 * 10)
+    const interval = setInterval(
+      async () => {
+        try {
+          await this.syncOnce(botId, client)
+        } catch (error) {
+          this.logger.error(`Failed to auto sync bot profile: ${botId}`, error)
+        }
+      },
+      1000 * 60 * 10,
+    )
 
     this.intervals.set(botId, interval)
 
