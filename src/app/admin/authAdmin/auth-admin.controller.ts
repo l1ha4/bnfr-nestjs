@@ -1,0 +1,39 @@
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+} from '@nestjs/common'
+import { AuthAdminService } from './auth-admin.service'
+import type { Request } from 'express'
+import { LoginDto } from '../../auth/dto/login.dto'
+import { Authorization } from '@/app/auth/decorators/auth.decorators'
+import { User } from 'discord.js'
+import { UserRole } from '@prisma/client'
+
+@Controller('auth-admin')
+export class AuthAdminController {
+  public constructor(private readonly authAdminService: AuthAdminService) {}
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER )
+  @Get('profile')
+  @HttpCode(HttpStatus.OK)
+  public async getProfile(@Req() req: Request) {
+    return this.authAdminService.findByIdAdmin(req.session.userId)
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  public async loginAdmin(@Body() dto: LoginDto, @Req() req: Request) {
+    return this.authAdminService.loginAdmin(req, dto)
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  public async logoutAdmin(@Req() req: Request): Promise<boolean> {
+    return this.authAdminService.logoutAdmin(req)
+  }
+}

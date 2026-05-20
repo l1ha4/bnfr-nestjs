@@ -8,11 +8,11 @@ import {
 import { UserRole } from '@prisma/client'
 import { Request } from 'express'
 import { UserService } from '@/app/user/user.service'
-
+import { PrismaService } from '@/core/prisma/prisma.service'
 
 @Injectable()
 export class AdminRouteGuard implements CanActivate {
-  public constructor(private readonly userService: UserService) {}
+  public constructor(private readonly prisma: PrismaService) {}
 
   public async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>()
@@ -29,7 +29,12 @@ export class AdminRouteGuard implements CanActivate {
       throw new UnauthorizedException('Пользователь не авторизован')
     }
 
-    const user = request.user ?? (await this.userService.findById(sessionUserId))
+    const user =
+      request.user ??
+      (await this.prisma.user.findUnique({
+        where: { id: sessionUserId },
+        include: { accounts: true },
+      }))
 
     if (!user) {
       throw new UnauthorizedException('Пользователь не авторизован')

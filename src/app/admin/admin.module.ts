@@ -9,6 +9,6 @@ import { AdminService } from './admin.service'
 @Module({
   imports: [DsBotModule, UserModule],
   controllers: [AdminController],
-  providers: [OwnerSeedService, AdminService],
+  providers: [OwnerSeedService, OwnerControlService, AdminService],
 })
 export class AdminModule {}

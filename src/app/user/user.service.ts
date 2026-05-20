@@ -36,12 +36,15 @@ export class UserService {
     const user = await this.prisma.user.findUnique({
       where: {
         email,
-        role: UserRole.REGULAR,
       },
       include: {
         accounts: true,
       },
     })
+
+    if (user?.role !== UserRole.REGULAR) {
+      throw new ForbiddenException('Пользователь не является REGULAR')
+    }
 
     return user
   }

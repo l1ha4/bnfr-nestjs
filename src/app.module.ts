@@ -1,4 +1,5 @@
 import { AdminModule } from './app/admin/admin.module'
+import { AuthAdminModule } from './app/admin/authAdmin/auth-admin.module'
 import { Module } from '@nestjs/common'
 
 import { ConfigModule } from '@nestjs/config'
@@ -17,10 +18,11 @@ import { AdminRouteGuard } from './app/admin/guards/admin-route.guard'
       isGlobal: true,
     }),
     PrismaModule,
-    AdminModule,
     RouterModule.register(router),
     AuthModule,
     UserModule,
+    AdminModule,
+    AuthAdminModule,
   ],
   controllers: [],
   providers: [

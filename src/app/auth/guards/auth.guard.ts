@@ -5,10 +5,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common'
 import { UserService } from '@/app/user/user.service'
+import { PrismaService } from '@/core/prisma/prisma.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  public constructor(private readonly userService: UserService) {}
+  public constructor(private readonly prisma: PrismaService) {}
   public async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest()
 
@@ -18,7 +19,9 @@ export class AuthGuard implements CanActivate {
       )
     }
 
-    const user = await this.userService.findById(request.session.userId)
+    const user = await this.prisma.user.findUnique({
+      where: { id: request.session.userId },
+    })
 
     request.user = user
 
