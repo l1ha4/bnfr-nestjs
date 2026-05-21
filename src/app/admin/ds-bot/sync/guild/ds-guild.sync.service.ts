@@ -27,4 +27,15 @@ export class DsGuildSyncService {
       },
     })
   }
+
+  async setGuildLoadingSync(guildDbId: string, isLoadingSync: boolean) {
+    await this.prisma.dsGuild.updateMany({
+      where: {
+        id: guildDbId,
+      },
+      data: {
+        isLoadingSync,
+      },
+    })
+  }
 }

@@ -6,6 +6,11 @@ import { CreateDsBotDto } from './dto/createDsBot.dto'
 export class DsBotController {
   constructor(private readonly dsBotService: DsBotService) {}
 
+  @Get('all-guilds/:id')
+  allGuilds(@Param('id') id: string) {
+    return this.dsBotService.findAllGuilds(id)
+  }
+
   @Get('all')
   all() {
     return this.dsBotService.findAll()

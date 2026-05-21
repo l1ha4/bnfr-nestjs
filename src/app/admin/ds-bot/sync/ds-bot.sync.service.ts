@@ -28,13 +28,19 @@ export class DsBotSyncService {
   async syncBotGuild(botId: string, guild: Guild) {
     const guildRecord = await this.guildSync.upsertGuild(guild)
 
-    await this.connectionSync.upsertConnection(botId, guildRecord.id)
+    await this.guildSync.setGuildLoadingSync(guildRecord.id, true)
 
-    await this.guildChannelSync.syncGuildChannels(guildRecord.id, guild)
+    try {
+      await this.connectionSync.upsertConnection(botId, guildRecord.id)
 
-    await this.guildRoleSync.syncGuildRoles(guildRecord.id, guild)
+      await this.guildChannelSync.syncGuildChannels(guildRecord.id, guild)
 
-    await this.guildMemberSync.syncGuildMembers(guildRecord.id, guild)
+      await this.guildRoleSync.syncGuildRoles(guildRecord.id, guild)
+
+      await this.guildMemberSync.syncGuildMembers(guildRecord.id, guild)
+    } finally {
+      await this.guildSync.setGuildLoadingSync(guildRecord.id, false)
+    }
 
     return guildRecord
   }

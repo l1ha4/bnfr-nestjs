@@ -6,11 +6,12 @@ import { DsGuildMemberSyncService } from './member/ds-guild-member.sync.service'
 import { DsUserSyncService } from './member/ds-user.sync.service'
 import { DsGuildRoleSyncService } from './role/ds-guild-role.sync.service'
 import { DsGuildChannelSyncService } from './channel/ds-guild-channel.sync.service'
-
-
+import { DsBotSyncWaitService } from './wait/ds-bot-sync-wait.service'
+import { TimeoutWaitService } from '@/common/utils/timeout/timeout-wait.service'
 
 export const dsBotSyncProviders = [
   DsBotSyncService,
+  DsBotSyncWaitService,
   DsBotGuildConnectionSyncService,
   DsBotProfileSyncService,
   DsGuildSyncService,
@@ -18,4 +19,5 @@ export const dsBotSyncProviders = [
   DsUserSyncService,
   DsGuildRoleSyncService,
   DsGuildChannelSyncService,
+  TimeoutWaitService,
 ]
