@@ -17,6 +17,7 @@ export class DsBotRunnerService implements OnModuleInit {
     const bots = await this.prisma.dsBot.findMany({
       where: {
         isActive: true,
+        isEnabled: true,
       },
     })
 

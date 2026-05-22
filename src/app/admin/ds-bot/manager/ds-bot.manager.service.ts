@@ -19,6 +19,11 @@ export class DsBotManagerService {
   ) {}
 
   async startBot(botId: string, secretTokenBot: string) {
+    if (this.clients.has(botId)) {
+      this.logger.log(`Bot already started: ${botId}`)
+      return
+    }
+
     const token = this.tokenCrypto.decrypt(secretTokenBot)
     const client = new Client({
       intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildVoiceStates],
@@ -35,8 +40,6 @@ export class DsBotManagerService {
 
     await client.login(token)
 
-    
-
     this.clients.set(botId, client)
   }
 
@@ -45,13 +48,11 @@ export class DsBotManagerService {
 
     if (!client) return
 
+    this.profileSync.stopAutoSync(botId)
     client.destroy()
     this.clients.delete(botId)
-    this.profileSync.stopAutoSync(botId)
 
-    client.once('ready', () => {
-      console.log(`Bot ${client.user?.tag} stoped`)
-    })
+    this.logger.log(`Bot stopped: ${botId}`)
   }
 
   getClient(botId: string) {
