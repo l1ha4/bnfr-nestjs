@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 
 import { PrismaService } from '@/core/prisma/prisma.service'
-import { UpdateDsBotGuildSettingsDto } from '../api/dto/createDsBotGuildSettings.dto'
+import { UpdateDsBotGuildSettingsDto } from '../api/dto/patchSettings/createDsBotGuildSettings.dto'
 
 @Injectable()
 export class DsBotGuildSettingsService {

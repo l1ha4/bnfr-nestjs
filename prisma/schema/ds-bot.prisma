@@ -53,8 +53,9 @@ model DsBotGuildConnection {
 
   settings DsBotGuildSettings?
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt              DateTime               @default(now()) @map("created_at")
+  updatedAt              DateTime               @updatedAt @map("updated_at")
+  dsBotMessageDispatches DsBotMessageDispatch[]
 
   @@unique([botId, guildDbId])
   @@map("ds_bot_guild_connections")
@@ -220,4 +221,149 @@ enum DiscordGuildChannelType {
   THREAD_ANNOUNCEMENT
   DIRECTORY
   UNKNOWN
+}
+
+model DsBotMessageTemplate {
+  id String @id @default(uuid())
+
+  creatorId String @map("creator_id")
+  creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+
+  type DsBotMessageBlockType
+
+  contentJson Json @map("content_json")
+
+  isPublic Boolean @default(false) @map("is_public")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  formBlocks DsBotMessageFormBlock[]
+
+  @@index([creatorId])
+  @@index([isPublic])
+  @@map("ds_bot_message_templates")
+}
+
+model DsBotMessageForm {
+  id String @id @default(uuid())
+
+  creatorId String @map("creator_id")
+  creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+
+  isPublic Boolean @default(false) @map("is_public")
+
+  blocks DsBotMessageFormBlock[]
+
+  dispatches DsBotMessageDispatch[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([creatorId])
+  @@index([isPublic])
+  @@map("ds_bot_message_forms")
+}
+
+model DsBotMessageFormBlock {
+  id String @id @default(uuid())
+
+  formId String           @map("form_id")
+  form   DsBotMessageForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  templateId String?               @map("template_id")
+  template   DsBotMessageTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  type DsBotMessageBlockType
+
+  contentJson Json? @map("content_json")
+
+  position Int
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([formId, position])
+  @@index([formId])
+  @@index([templateId])
+  @@map("ds_bot_message_form_blocks")
+}
+
+model DsBotMessageDispatch {
+  id String @id @default(uuid())
+
+  connectionId String               @map("connection_id")
+  connection   DsBotGuildConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  channelId String @map("channel_id")
+
+  createdById String @map("created_by_id")
+  createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  sourceType DsBotMessageDispatchSourceType @map("source_type")
+
+  formId String?           @map("form_id")
+  form   DsBotMessageForm? @relation(fields: [formId], references: [id], onDelete: SetNull)
+
+  status DsBotMessageDispatchStatus @default(SUCCESS)
+
+  errorMessage String? @map("error_message")
+
+  logs DsBotMessageLog[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([connectionId])
+  @@index([channelId])
+  @@index([createdById])
+  @@index([formId])
+  @@map("ds_bot_message_dispatches")
+}
+
+model DsBotMessageLog {
+  id String @id @default(uuid())
+
+  dispatchId String               @map("dispatch_id")
+  dispatch   DsBotMessageDispatch @relation(fields: [dispatchId], references: [id], onDelete: Cascade)
+
+  discordMessageId String @map("discord_message_id")
+  discordChannelId String @map("discord_channel_id")
+
+  position Int
+
+  payloadJson Json @map("payload_json")
+
+  isEditable Boolean @default(true) @map("is_editable")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([discordChannelId, discordMessageId])
+  @@index([dispatchId])
+  @@index([discordMessageId])
+  @@index([discordChannelId])
+  @@map("ds_bot_message_logs")
+}
+
+enum DsBotMessageBlockType {
+  TEXT
+  EMBED
+}
+
+enum DsBotMessageDispatchSourceType {
+  FORM
+  TEMPLATES
+  INLINE
+}
+
+enum DsBotMessageDispatchStatus {
+  SUCCESS
+  FAILED
+  PARTIAL
 }

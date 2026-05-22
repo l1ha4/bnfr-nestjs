@@ -8,12 +8,18 @@ import {
   Post,
 } from '@nestjs/common'
 import { DsBotService } from './ds-bot.service'
-import { CreateDsBotDto } from './dto/createDsBot.dto'
-import { SetDsBotEnabledDto } from './dto/setDsBotEnabled.dto'
+import { CreateDsBotDto } from './dto/createBot/createDsBot.dto'
+import { SetDsBotEnabledDto } from './dto/enabled/setDsBotEnabled.dto'
+import { SendDsBotMessageDto } from './dto/send-message/send-ds-bot-message.dto';
 
 @Controller()
 export class DsBotController {
   constructor(private readonly dsBotService: DsBotService) {}
+
+  @Post('messages/send')
+  sendMessage(@Body() dto: SendDsBotMessageDto) {
+    return this.dsBotService.sendMessage(dto)
+  }
 
   @Get('all-text-channels/:botId/:guildId')
   allTextChannels(
@@ -21,6 +27,14 @@ export class DsBotController {
     @Param('guildId') guildId: string,
   ) {
     return this.dsBotService.findAllTextChannelsGuild(botId, guildId)
+  }
+
+  @Get('all-members/:botId/:guildId')
+  allMembers(
+    @Param('botId') botId: string,
+    @Param('guildId') guildId: string,
+  ) {
+    return this.dsBotService.findAllGuildMembers(botId, guildId)
   }
 
   @Get('all-guilds/:id')
