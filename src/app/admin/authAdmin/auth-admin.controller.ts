@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Post,
   Req,
+  UnauthorizedException,
 } from '@nestjs/common'
 import { AuthAdminService } from './auth-admin.service'
 import type { Request } from 'express'
@@ -18,11 +19,17 @@ import { UserRole } from '@prisma/client'
 export class AuthAdminController {
   public constructor(private readonly authAdminService: AuthAdminService) {}
 
-  @Authorization(UserRole.ADMIN, UserRole.OWNER )
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
   @Get('profile')
   @HttpCode(HttpStatus.OK)
   public async getProfile(@Req() req: Request) {
-    return this.authAdminService.findByIdAdmin(req.session.userId)
+    const userId = req.session.userId
+
+    if (!userId) {
+      throw new UnauthorizedException('Пользователь не авторизован')
+    }
+
+    return this.authAdminService.findByIdAdmin(userId)
   }
 
   @Post('login')
