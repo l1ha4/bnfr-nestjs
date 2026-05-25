@@ -5,9 +5,10 @@ import { OwnerSeedService } from './owner/owner-seed.service'
 import { OwnerControlService } from './owner/owner-control.service'
 import { UserModule } from '../user/user.module'
 import { AdminService } from './admin.service'
+import { AuthAdminModule } from './authAdmin/auth-admin.module'
 
 @Module({
-  imports: [DsBotModule, UserModule],
+  imports: [DsBotModule, UserModule, AuthAdminModule],
   controllers: [AdminController],
   providers: [OwnerSeedService, OwnerControlService, AdminService],
 })

@@ -90,9 +90,11 @@ export class AuthAdminService {
     const user = await this.prisma.user.findUnique({
       where: { email },
     })
+
     if (!user) {
       throw new NotFoundException('Пользователь не найден')
     }
+    
     if (user.role !== UserRole.ADMIN && user.role !== UserRole.OWNER) {
       throw new ForbiddenException('Пользователь не является администратором')
     }

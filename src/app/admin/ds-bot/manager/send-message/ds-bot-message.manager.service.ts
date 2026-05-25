@@ -10,7 +10,6 @@ import { EmbedBuilder } from 'discord.js'
 
 import { PrismaService } from '@/core/prisma/prisma.service'
 import {
-  DsBotMessageBlockType,
   DsBotMessageDispatchSourceType,
   DsBotMessageDispatchStatus,
 } from '@prisma/client'

@@ -12,10 +12,25 @@ import { OwnerControlService } from './owner/owner-control.service'
 import { CreateUserDto } from '../user/dto/createUser.dto'
 import { Authorization } from '../auth/decorators/auth.decorators'
 import { UserRole } from '@prisma/client'
+import { ResetPasswordDto } from './owner/dto/resetPassword.dto'
 
 @Controller()
 export class AdminController {
   constructor(private readonly ownerControlService: OwnerControlService) {}
+
+  @Authorization(UserRole.OWNER)
+  @Post('reset-admin-password/:id')
+  @HttpCode(HttpStatus.OK)
+  async resetPasswordAdmin(@Param('id') id: string, @Body() dto: ResetPasswordDto): Promise<boolean> {
+    return this.ownerControlService.resetPasswordAdmin(id, dto)
+  }
+
+  @Authorization(UserRole.OWNER)
+  @Post('reset-owner-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPasswordOwner(@Body() dto: ResetPasswordDto): Promise<boolean> {
+    return this.ownerControlService.resetPasswordOwner(dto)
+  }
 
   @Authorization(UserRole.OWNER)
   @Get('all-admins')

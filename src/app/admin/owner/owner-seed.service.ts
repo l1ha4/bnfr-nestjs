@@ -5,6 +5,7 @@ import * as argon2 from 'argon2'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { AuthMethod, UserRole } from '@prisma/client'
 
+
 @Injectable()
 export class OwnerSeedService implements OnApplicationBootstrap {
   private readonly logger = new Logger(OwnerSeedService.name)
@@ -12,6 +13,7 @@ export class OwnerSeedService implements OnApplicationBootstrap {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    
   ) {}
 
   async onApplicationBootstrap() {
