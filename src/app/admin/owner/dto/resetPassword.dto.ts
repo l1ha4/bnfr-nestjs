@@ -3,7 +3,7 @@ import { IsNotEmpty, IsString } from 'class-validator'
 export class ResetPasswordDto {
   @IsString()
   @IsNotEmpty()
-  oldPassword!: string
+  ownerPassword!: string
   @IsString()
   @IsNotEmpty()
   newPassword!: string

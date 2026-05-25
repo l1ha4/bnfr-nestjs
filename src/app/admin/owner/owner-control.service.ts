@@ -91,7 +91,23 @@ export class OwnerControlService {
     id: string,
     dto: ResetPasswordDto,
   ): Promise<boolean> {
-    const { newPassword } = dto
+    const { newPassword, ownerPassword } = dto
+
+    const owner = await this.prisma.user.findFirst({
+      where: {
+        role: 'OWNER',
+      },
+    })
+
+    if (!owner) {
+      throw new NotFoundException('Владелец не найден')
+    }
+
+    const isValidPassword = await argon2.verify(owner.password, ownerPassword)
+
+    if (!isValidPassword) {
+      throw new ForbiddenException('Неверный старый пароль')
+    }
 
     const user = await this.prisma.user.findFirst({
       where: {
@@ -119,7 +135,7 @@ export class OwnerControlService {
   }
 
   async resetPasswordOwner(dto: ResetPasswordDto): Promise<boolean> {
-    const { newPassword, oldPassword } = dto
+    const { newPassword, ownerPassword } = dto
 
     const user = await this.prisma.user.findFirst({
       where: {
@@ -131,7 +147,7 @@ export class OwnerControlService {
       throw new NotFoundException('Владелец не найден')
     }
 
-    const isValidPassword = await argon2.verify(user.password, oldPassword)
+    const isValidPassword = await argon2.verify(user.password, ownerPassword)
 
     if (!isValidPassword) {
       throw new ForbiddenException('Неверный старый пароль')
