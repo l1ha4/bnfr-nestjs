@@ -11,6 +11,8 @@ import { DsBotService } from './ds-bot.service'
 import { CreateDsBotDto } from './dto/createBot/createDsBot.dto'
 import { SetDsBotEnabledDto } from './dto/enabled/setDsBotEnabled.dto'
 import { SendDsBotMessageDto } from './dto/send-message/send-ds-bot-message.dto';
+import { Authorization } from '@/app/auth/decorators/auth.decorators';
+import { UserRole } from '@prisma/client';
 
 @Controller()
 export class DsBotController {
@@ -47,6 +49,8 @@ export class DsBotController {
     return this.dsBotService.findAll()
   }
 
+
+  @Authorization(UserRole.OWNER)
   @Post('add')
   add(@Body() dto: CreateDsBotDto) {
     return this.dsBotService.add(dto)
