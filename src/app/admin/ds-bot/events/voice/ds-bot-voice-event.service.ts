@@ -12,8 +12,12 @@ export class DsBotVoiceEventsService {
   ) {}
 
   register(botId: string, client: Client) {
-    client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
-      await this.voiceActivityManager.handleVoiceStateUpdate(oldState, newState)
+    client.on(Events.VoiceStateUpdate, (oldState, newState) => {
+      void this.voiceActivityManager.handleVoiceStateUpdate(
+        botId,
+        oldState,
+        newState,
+      )
     })
   }
 }

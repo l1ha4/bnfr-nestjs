@@ -9,7 +9,11 @@ import { PrismaService } from '@/core/prisma/prisma.service'
 export class DsBotVoiceActivityManager {
   constructor(private readonly prisma: PrismaService) {}
 
-  async handleVoiceStateUpdate(oldState: VoiceState, newState: VoiceState) {
+  async handleVoiceStateUpdate(
+    botId: string,
+    oldState: VoiceState,
+    newState: VoiceState,
+  ) {
     const oldChannelId = oldState.channelId
     const newChannelId = newState.channelId
 
@@ -27,6 +31,20 @@ export class DsBotVoiceActivityManager {
     })
 
     if (!guildRecord) return
+
+    const connection = await this.prisma.dsBotGuildConnection.findUnique({
+      where: {
+        botId_guildDbId: {
+          botId,
+          guildDbId: guildRecord.id,
+        },
+      },
+      include: {
+        settings: true,
+      },
+    })
+
+    if (!connection?.settings?.voiceTrackingEnabled) return
 
     const user = await this.prisma.dsUser.findUnique({
       where: {

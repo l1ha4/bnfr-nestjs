@@ -10,9 +10,10 @@ import {
 import { DsBotService } from './ds-bot.service'
 import { CreateDsBotDto } from './dto/createBot/createDsBot.dto'
 import { SetDsBotEnabledDto } from './dto/enabled/setDsBotEnabled.dto'
-import { SendDsBotMessageDto } from './dto/send-message/send-ds-bot-message.dto';
-import { Authorization } from '@/app/auth/decorators/auth.decorators';
-import { UserRole } from '@prisma/client';
+import { UpdateDsBotGuildSettingsDto } from './dto/patchSettings/createDsBotGuildSettings.dto'
+import { SendDsBotMessageDto } from './dto/send-message/send-ds-bot-message.dto'
+import { Authorization } from '@/app/auth/decorators/auth.decorators'
+import { UserRole } from '@prisma/client'
 
 @Controller()
 export class DsBotController {
@@ -32,10 +33,7 @@ export class DsBotController {
   }
 
   @Get('all-members/:botId/:guildId')
-  allMembers(
-    @Param('botId') botId: string,
-    @Param('guildId') guildId: string,
-  ) {
+  allMembers(@Param('botId') botId: string, @Param('guildId') guildId: string) {
     return this.dsBotService.findAllGuildMembers(botId, guildId)
   }
 
@@ -44,11 +42,26 @@ export class DsBotController {
     return this.dsBotService.findAllGuilds(id)
   }
 
+  @Patch('settings/:connectionId')
+  updateGuildSettings(
+    @Param('connectionId') connectionId: string,
+    @Body() dto: UpdateDsBotGuildSettingsDto,
+  ) {
+    return this.dsBotService.updateGuildSettingsByConnectionId(
+      connectionId,
+      dto,
+    )
+  }
+
+  @Get('settings/:connectionId')
+  getGuildSettings(@Param('connectionId') connectionId: string) {
+    return this.dsBotService.getGuildSettingsByConnectionId(connectionId)
+  }
+
   @Get('all')
   all() {
     return this.dsBotService.findAll()
   }
-
 
   @Authorization(UserRole.OWNER)
   @Post('add')

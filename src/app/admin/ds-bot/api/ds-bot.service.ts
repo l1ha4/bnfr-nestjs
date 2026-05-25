@@ -13,6 +13,8 @@ import { DsBotSyncWaitService } from '../sync/wait/ds-bot-sync-wait.service'
 import { SendDsBotMessageDto } from './dto/send-message/send-ds-bot-message.dto'
 import { DsBotMessageManager } from '../manager/send-message/ds-bot-message.manager.service'
 import { DsBotGuildManagerService } from '../manager/guild/ds-bot-guild.manager.service'
+import { UpdateDsBotGuildSettingsDto } from './dto/patchSettings/createDsBotGuildSettings.dto'
+import { DsBotGuildSettingsService } from '../settings/ds-bot-guild-settings.service'
 
 @Injectable()
 export class DsBotService {
@@ -23,6 +25,7 @@ export class DsBotService {
     private readonly dsBotSyncWaitService: DsBotSyncWaitService,
     private readonly messageManager: DsBotMessageManager,
     private readonly guildManager: DsBotGuildManagerService,
+    private readonly dsBotGuildSettingsService: DsBotGuildSettingsService,
   ) {}
 
   sendMessage(dto: SendDsBotMessageDto) {
@@ -93,6 +96,26 @@ export class DsBotService {
         ...connection.guild,
         connectionId: connection.id,
       }))
+  }
+
+  async updateGuildSettingsByConnectionId(
+    connectionId: string,
+    dto: UpdateDsBotGuildSettingsDto,
+  ) {
+    if (Object.keys(dto).length === 0) {
+      throw new BadRequestException(
+        'Должно быть указано хотя бы одно поле для обновления',
+      )
+    }
+
+    return this.dsBotGuildSettingsService.updateByConnectionId(
+      connectionId,
+      dto,
+    )
+  }
+
+  async getGuildSettingsByConnectionId(connectionId: string) {
+    return this.dsBotGuildSettingsService.getByConnectionId(connectionId)
   }
 
   async findAll() {
