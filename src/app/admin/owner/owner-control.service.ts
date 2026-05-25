@@ -20,7 +20,77 @@ export class OwnerControlService {
     private readonly authAdminService: AuthAdminService,
   ) {}
 
-  async resetPasswordAdmin(id: string, dto: ResetPasswordDto): Promise<boolean> {
+  async resetEmailOwner(newEmail: string): Promise<boolean> {
+    const existingUser = await this.prisma.user.findUnique({
+      where: {
+        email: newEmail,
+      },
+    })
+
+    if (existingUser) {
+      throw new ConflictException('Пользователь с таким email уже существует')
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        role: 'OWNER',
+      },
+    })
+
+    if (!user) {
+      throw new NotFoundException('Владелец не найден')
+    }
+
+    await this.prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        email: newEmail,
+      },
+    })
+
+    return true
+  }
+
+  async resetEmailAdmin(id: string, newEmail: string): Promise<boolean> {
+    const existingUser = await this.prisma.user.findUnique({
+      where: {
+        email: newEmail,
+      },
+    })
+
+    if (existingUser) {
+      throw new ConflictException('Пользователь с таким email уже существует')
+    }
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        id,
+        role: 'ADMIN',
+      },
+    })
+
+    if (!user) {
+      throw new NotFoundException('Администратор не найден')
+    }
+
+    await this.prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        email: newEmail,
+      },
+    })
+
+    return true
+  }
+
+  async resetPasswordAdmin(
+    id: string,
+    dto: ResetPasswordDto,
+  ): Promise<boolean> {
     const { newPassword } = dto
 
     const user = await this.prisma.user.findFirst({
@@ -49,7 +119,7 @@ export class OwnerControlService {
   }
 
   async resetPasswordOwner(dto: ResetPasswordDto): Promise<boolean> {
-    const { newPassword } = dto
+    const { newPassword, oldPassword } = dto
 
     const user = await this.prisma.user.findFirst({
       where: {
@@ -59,6 +129,12 @@ export class OwnerControlService {
 
     if (!user) {
       throw new NotFoundException('Владелец не найден')
+    }
+
+    const isValidPassword = await argon2.verify(user.password, oldPassword)
+
+    if (!isValidPassword) {
+      throw new ForbiddenException('Неверный старый пароль')
     }
 
     const hashedPassword = await argon2.hash(newPassword)
