@@ -18,6 +18,16 @@ export class DsBotManagerService {
     private readonly events: DsBotEventsService,
   ) {}
 
+  isTokenInvalidError(error: unknown): error is { code: 'TokenInvalid' } {
+    if (typeof error !== 'object' || error === null) {
+      return false
+    }
+
+    const { code } = error as { code?: unknown }
+
+    return code === 'TokenInvalid'
+  }
+
   async startBot(botId: string, secretTokenBot: string) {
     if (this.clients.has(botId)) {
       this.logger.log(`Bot already started: ${botId}`)
@@ -38,7 +48,12 @@ export class DsBotManagerService {
       this.events.register(botId, readyClient)
     })
 
-    await client.login(token)
+    try {
+      await client.login(token)
+    } catch (error) {
+      client.destroy()
+      throw error
+    }
 
     this.clients.set(botId, client)
   }

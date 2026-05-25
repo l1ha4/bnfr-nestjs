@@ -28,6 +28,21 @@ export class DsBotRunnerService implements OnModuleInit {
         this.logger.log(`Bot started: ${bot.id}`)
       } catch (error) {
         this.logger.error(`Failed to start bot: ${bot.id}`, error)
+
+        if (!this.manager.isTokenInvalidError(error)) {
+          continue
+        }
+
+        await this.prisma.dsBot.update({
+          where: {
+            id: bot.id,
+          },
+          data: {
+            isEnabled: false,
+          },
+        })
+
+        this.logger.warn(`Bot disabled due to invalid Discord token: ${bot.id}`)
       }
     }
   }

@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service'
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -27,6 +28,15 @@ export class DsBotService {
   sendMessage(dto: SendDsBotMessageDto) {
     return this.messageManager.sendInlineMessage(dto)
   }
+
+  private rethrowStartBotError(error: unknown): never {
+    if (this.dsBotManager.isTokenInvalidError(error)) {
+      throw new BadRequestException('Указан невалидный токен Discord бота')
+    }
+
+    throw error
+  }
+
   async findAllTextChannelsGuild(botId: string, guildId: string) {
     await this.dsBotSyncWaitService.waitUntilBotSyncCompleted(botId)
     await this.dsBotSyncWaitService.waitUntilBotGuildsSyncCompleted(botId)
@@ -133,11 +143,29 @@ export class DsBotService {
     const newDsBot = await this.prismaService.dsBot.create({
       data: {
         secretTokenBot: encryptedToken,
+        isEnabled: false,
       },
     })
 
-    if (newDsBot.isEnabled) {
+    try {
       await this.dsBotManager.startBot(newDsBot.id, newDsBot.secretTokenBot)
+
+      await this.prismaService.dsBot.update({
+        where: {
+          id: newDsBot.id,
+        },
+        data: {
+          isEnabled: true,
+        },
+      })
+    } catch (error) {
+      await this.prismaService.dsBot.delete({
+        where: {
+          id: newDsBot.id,
+        },
+      })
+
+      this.rethrowStartBotError(error)
     }
 
     return true
@@ -181,22 +209,37 @@ export class DsBotService {
       return true
     }
 
+    if (isEnabled) {
+      if (dsBot.isActive) {
+        try {
+          await this.dsBotManager.startBot(dsBot.id, dsBot.secretTokenBot)
+        } catch (error) {
+          this.rethrowStartBotError(error)
+        }
+      }
+
+      await this.prismaService.dsBot.update({
+        where: {
+          id,
+        },
+        data: {
+          isEnabled: true,
+        },
+      })
+
+      return true
+    }
+
     await this.prismaService.dsBot.update({
       where: {
         id,
       },
       data: {
-        isEnabled,
+        isEnabled: false,
       },
     })
 
-    if (isEnabled && dsBot.isActive) {
-      await this.dsBotManager.startBot(dsBot.id, dsBot.secretTokenBot)
-    }
-
-    if (!isEnabled) {
-      await this.dsBotManager.stopBot(dsBot.id)
-    }
+    await this.dsBotManager.stopBot(dsBot.id)
 
     return true
   }
