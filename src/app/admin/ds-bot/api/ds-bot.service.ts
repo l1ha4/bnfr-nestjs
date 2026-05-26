@@ -11,11 +11,13 @@ import { DsBotManagerService } from '../manager/ds-bot.manager.service'
 import { DsBotTokenCryptoService } from '../manager/crypto/ds-bot-token-crypto.service'
 import { DsBotSyncWaitService } from '../sync/wait/ds-bot-sync-wait.service'
 import { DsBotMessageLogHistoryManager } from '../manager/send-message/ds-bot-message-log-history.manager.service'
-import { SendDsBotMessageDto } from './dto/send-message/send-ds-bot-message.dto'
+import { SendDsBotMessageDto } from './dto/message/send-ds-bot-message.dto'
 import { DsBotMessageManager } from '../manager/send-message/ds-bot-message.manager.service'
 import { DsBotGuildManagerService } from '../manager/guild/ds-bot-guild.manager.service'
 import { UpdateDsBotGuildSettingsDto } from './dto/patchSettings/createDsBotGuildSettings.dto'
 import { DsBotGuildSettingsService } from '../settings/ds-bot-guild-settings.service'
+import { EditDsBotMessageLogDto } from './dto/message/edit-ds-bot-message-log.dto'
+import { DsBotMessageEditManager } from '../manager/send-message/ds-bot-message-edit.service'
 
 @Injectable()
 export class DsBotService {
@@ -28,6 +30,7 @@ export class DsBotService {
     private readonly messageLogHistoryManager: DsBotMessageLogHistoryManager,
     private readonly guildManager: DsBotGuildManagerService,
     private readonly dsBotGuildSettingsService: DsBotGuildSettingsService,
+    private readonly dsBotMessageEditManager: DsBotMessageEditManager,
   ) {}
 
   sendMessage(dto: SendDsBotMessageDto) {
@@ -285,5 +288,9 @@ export class DsBotService {
     })
 
     return true
+  }
+
+  editSentMessageLog(messageLogId: string, dto: EditDsBotMessageLogDto) {
+    return this.dsBotMessageEditManager.editSentMessageLog(messageLogId, dto)
   }
 }

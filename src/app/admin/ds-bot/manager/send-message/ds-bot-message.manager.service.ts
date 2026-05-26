@@ -6,10 +6,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
-import { EmbedBuilder } from 'discord.js'
+import { type BaseMessageOptions, EmbedBuilder } from 'discord.js'
 
 import { PrismaService } from '@/core/prisma/prisma.service'
 import {
+  Prisma,
   DsBotMessageDispatchSourceType,
   DsBotMessageDispatchStatus,
 } from '@prisma/client'
@@ -18,7 +19,12 @@ import { DsBotManagerService } from '../ds-bot.manager.service'
 import {
   SendDsBotMessageDto,
   SendMessageBlockType,
-} from '../../api/dto/send-message/send-ds-bot-message.dto'
+} from '../../api/dto/message/send-ds-bot-message.dto'
+
+type DsBotPreparedMessagePayload = {
+  messageOptions: BaseMessageOptions
+  payloadJson: Prisma.InputJsonValue
+}
 
 @Injectable()
 export class DsBotMessageManager {
@@ -95,7 +101,7 @@ export class DsBotMessageManager {
       try {
         const payload = this.buildPayload(block)
 
-        const message = await channel.send(payload)
+        const message = await channel.send(payload.messageOptions)
 
         await this.prisma.dsBotMessageLog.create({
           data: {
@@ -103,7 +109,7 @@ export class DsBotMessageManager {
             discordMessageId: message.id,
             discordChannelId: resolvedChannelId,
             position: index,
-            payloadJson: payload,
+            payloadJson: payload.payloadJson,
             isEditable: true,
           },
         })
@@ -158,47 +164,61 @@ export class DsBotMessageManager {
     return channel.channelId
   }
 
-  private buildPayload(block: SendDsBotMessageDto['blocks'][number]) {
-    if (block.type === SendMessageBlockType.TEXT) {
-      return {
+  public buildPayload(block: {
+    type: 'text' | 'embed'
+    content: string | Record<string, any>
+  }): DsBotPreparedMessagePayload {
+    if (block.type === 'text') {
+      const messageOptions: BaseMessageOptions = {
         content: String(block.content),
-      }
-    }
-
-    if (block.type === SendMessageBlockType.EMBED) {
-      const content = block.content as Record<string, any>
-
-      const embed = new EmbedBuilder()
-
-      if (content.title) embed.setTitle(content.title)
-      if (content.description) embed.setDescription(content.description)
-      if (content.color) embed.setColor(content.color)
-      if (content.url) embed.setURL(content.url)
-
-      if (Array.isArray(content.fields)) {
-        embed.addFields(content.fields)
-      }
-
-      if (content.footer?.text) {
-        embed.setFooter({
-          text: content.footer.text,
-          iconURL: content.footer.iconURL,
-        })
-      }
-
-      if (content.image?.url) {
-        embed.setImage(content.image.url)
-      }
-
-      if (content.thumbnail?.url) {
-        embed.setThumbnail(content.thumbnail.url)
+        embeds: [],
       }
 
       return {
-        embeds: [embed],
+        messageOptions,
+        payloadJson: this.toInputJsonValue(messageOptions),
       }
     }
 
-    throw new BadRequestException('Unknown message block type')
+    const content = block.content as Record<string, any>
+
+    const embed = new EmbedBuilder()
+
+    if (content.title) embed.setTitle(content.title)
+    if (content.description) embed.setDescription(content.description)
+    if (content.color) embed.setColor(content.color)
+    if (content.url) embed.setURL(content.url)
+
+    if (Array.isArray(content.fields)) {
+      embed.addFields(content.fields)
+    }
+
+    if (content.footer?.text) {
+      embed.setFooter({
+        text: content.footer.text,
+        iconURL: content.footer.iconURL,
+      })
+    }
+
+    if (content.image?.url) {
+      embed.setImage(content.image.url)
+    }
+
+    if (content.thumbnail?.url) {
+      embed.setThumbnail(content.thumbnail.url)
+    }
+
+    const messageOptions: BaseMessageOptions = {
+      embeds: [embed.toJSON()],
+    }
+
+    return {
+      messageOptions,
+      payloadJson: this.toInputJsonValue(messageOptions),
+    }
+  }
+
+  private toInputJsonValue(value: BaseMessageOptions): Prisma.InputJsonValue {
+    return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue
   }
 }

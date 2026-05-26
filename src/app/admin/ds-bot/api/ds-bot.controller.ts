@@ -11,13 +11,27 @@ import { DsBotService } from './ds-bot.service'
 import { CreateDsBotDto } from './dto/createBot/createDsBot.dto'
 import { SetDsBotEnabledDto } from './dto/enabled/setDsBotEnabled.dto'
 import { UpdateDsBotGuildSettingsDto } from './dto/patchSettings/createDsBotGuildSettings.dto'
-import { SendDsBotMessageDto } from './dto/send-message/send-ds-bot-message.dto'
+import { SendDsBotMessageDto } from './dto/message/send-ds-bot-message.dto'
 import { Authorization } from '@/app/auth/decorators/auth.decorators'
 import { UserRole } from '@prisma/client'
+import { EditDsBotMessageLogDto } from './dto/message/edit-ds-bot-message-log.dto'
 
 @Controller()
 export class DsBotController {
   constructor(private readonly dsBotService: DsBotService) {}
+
+  @Get('messages/logs/:connectionId')
+  getMessageLogHistory(@Param('connectionId') connectionId: string) {
+    return this.dsBotService.getMessageLogHistoryByConnectionId(connectionId)
+  }
+
+  @Patch('messages/logs/:messageLogId')
+  editSentMessageLog(
+    @Param('messageLogId') messageLogId: string,
+    @Body() dto: EditDsBotMessageLogDto,
+  ) {
+    return this.dsBotService.editSentMessageLog(messageLogId, dto)
+  }
 
   @Post('messages/send')
   sendMessage(@Body() dto: SendDsBotMessageDto) {
@@ -56,11 +70,6 @@ export class DsBotController {
   @Get('settings/:connectionId')
   getGuildSettings(@Param('connectionId') connectionId: string) {
     return this.dsBotService.getGuildSettingsByConnectionId(connectionId)
-  }
-
-  @Get('message-logs/:connectionId')
-  getMessageLogHistory(@Param('connectionId') connectionId: string) {
-    return this.dsBotService.getMessageLogHistoryByConnectionId(connectionId)
   }
 
   @Get('all')

@@ -4,6 +4,7 @@ import { DsBotManagerService } from './ds-bot.manager.service'
 import { DsBotMessageLogHistoryManager } from './send-message/ds-bot-message-log-history.manager.service'
 import { DsBotVoiceActivityManager } from './voice-activity/ds-bot-voice-activity.manager.service'
 import { DsBotMessageManager } from './send-message/ds-bot-message.manager.service'
+import { DsBotMessageEditManager } from './send-message/ds-bot-message-edit.service';
 
 export const dsBotManagerProviders = [
   DsBotManagerService,
@@ -12,4 +13,5 @@ export const dsBotManagerProviders = [
   DsBotVoiceActivityManager,
   DsBotMessageLogHistoryManager,
   DsBotMessageManager,
+  DsBotMessageEditManager,
 ]

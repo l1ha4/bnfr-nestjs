@@ -351,7 +351,7 @@ model DsBotMessageLog {
   isDeleted  Boolean @default(false) @map("is_deleted")
 
   deletedAt DateTime? @map("deleted_at")
-
+  editedAt DateTime? @map("edited_at")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
