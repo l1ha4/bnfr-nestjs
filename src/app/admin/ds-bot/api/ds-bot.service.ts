@@ -5,11 +5,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
-import { DiscordGuildChannelType, DsBot } from '@prisma/client'
+import { DsBot, DsGuildChannelType } from '@prisma/client'
 import { CreateDsBotDto } from './dto/createBot/createDsBot.dto'
 import { DsBotManagerService } from '../manager/ds-bot.manager.service'
 import { DsBotTokenCryptoService } from '../manager/crypto/ds-bot-token-crypto.service'
 import { DsBotSyncWaitService } from '../sync/wait/ds-bot-sync-wait.service'
+import { DsBotMessageLogHistoryManager } from '../manager/send-message/ds-bot-message-log-history.manager.service'
 import { SendDsBotMessageDto } from './dto/send-message/send-ds-bot-message.dto'
 import { DsBotMessageManager } from '../manager/send-message/ds-bot-message.manager.service'
 import { DsBotGuildManagerService } from '../manager/guild/ds-bot-guild.manager.service'
@@ -24,6 +25,7 @@ export class DsBotService {
     private readonly tokenCrypto: DsBotTokenCryptoService,
     private readonly dsBotSyncWaitService: DsBotSyncWaitService,
     private readonly messageManager: DsBotMessageManager,
+    private readonly messageLogHistoryManager: DsBotMessageLogHistoryManager,
     private readonly guildManager: DsBotGuildManagerService,
     private readonly dsBotGuildSettingsService: DsBotGuildSettingsService,
   ) {}
@@ -47,7 +49,7 @@ export class DsBotService {
     const textChannels = await this.prismaService.dsGuildChannel.findMany({
       where: {
         isActive: true,
-        type: DiscordGuildChannelType.TEXT,
+        type: DsGuildChannelType.TEXT,
         guild: {
           OR: [{ id: guildId }, { guildId }],
           connections: {
@@ -116,6 +118,10 @@ export class DsBotService {
 
   async getGuildSettingsByConnectionId(connectionId: string) {
     return this.dsBotGuildSettingsService.getByConnectionId(connectionId)
+  }
+
+  async getMessageLogHistoryByConnectionId(connectionId: string) {
+    return this.messageLogHistoryManager.getByConnectionId(connectionId)
   }
 
   async findAll() {

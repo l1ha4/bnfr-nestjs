@@ -162,4 +162,12 @@ export class DsBotGuildManagerService {
           }),
       )
   }
+
+  findByGuildId(guildId: string) {
+    return this.prismaService.dsGuild.findUnique({
+      where: {
+        guildId,
+      },
+    })
+  }
 }

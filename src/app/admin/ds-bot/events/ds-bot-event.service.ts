@@ -6,6 +6,7 @@ import { DsBotMemberEventsService } from './member/ds-bot-member-event.service'
 import { DsBotRoleEventsService } from './role/ds-bot-role-event.service'
 import { DsBotChannelEventsService } from './channel/ds-bot-channel-event.service'
 import { DsBotVoiceEventsService } from './voice/ds-bot-voice-event.service'
+import { DsBotMessageEventsService } from './message/ds-bot-message-event.service'
 
 @Injectable()
 export class DsBotEventsService {
@@ -15,6 +16,7 @@ export class DsBotEventsService {
     private readonly roleEvents: DsBotRoleEventsService,
     private readonly channelEvents: DsBotChannelEventsService,
     private readonly voiceEvents: DsBotVoiceEventsService,
+    private readonly messageEvents: DsBotMessageEventsService,
   ) {}
 
   register(botId: string, client: Client) {
@@ -23,5 +25,6 @@ export class DsBotEventsService {
     this.roleEvents.register(botId, client)
     this.channelEvents.register(botId, client)
     this.voiceEvents.register(botId, client)
+    this.messageEvents.register(botId, client)
   }
 }

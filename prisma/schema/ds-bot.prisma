@@ -168,10 +168,16 @@ model DsGuildChannel {
   channelId String @map("channel_id")
 
   name String?
-  type DiscordGuildChannelType
+  type DsGuildChannelType
 
   position        Int?
   parentChannelId String? @map("parent_channel_id")
+
+  isTextBased     Boolean @default(false) @map("is_text_based")
+  isVoiceBased    Boolean @default(false) @map("is_voice_based")
+  isThread        Boolean @default(false) @map("is_thread")
+  isThreadOnly    Boolean @default(false) @map("is_thread_only")
+  canSendMessages Boolean @default(false) @map("can_send_messages")
 
   isActive Boolean @default(true) @map("is_active")
 
@@ -208,7 +214,7 @@ model DsGuildVoiceSession {
   @@map("ds_guild_voice_sessions")
 }
 
-enum DiscordGuildChannelType {
+enum DsGuildChannelType {
   TEXT
   VOICE
   CATEGORY
@@ -339,7 +345,12 @@ model DsBotMessageLog {
 
   payloadJson Json @map("payload_json")
 
+  status DsGuildMessageStatus @default(ACTIVE)
+
   isEditable Boolean @default(true) @map("is_editable")
+  isDeleted  Boolean @default(false) @map("is_deleted")
+
+  deletedAt DateTime? @map("deleted_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -348,7 +359,45 @@ model DsBotMessageLog {
   @@index([dispatchId])
   @@index([discordMessageId])
   @@index([discordChannelId])
+  @@index([status])
+  @@index([isDeleted])
   @@map("ds_bot_message_logs")
+}
+
+model DsGuildMessage {
+  id String @id @default(uuid())
+
+  guildDbId String @map("guild_db_id")
+
+  channelId String @map("channel_id")
+  messageId String @map("message_id")
+
+  authorUserId String? @map("author_user_id")
+
+  content String?
+
+  isFromBot    Boolean @default(false) @map("is_from_bot")
+  isFromOurBot Boolean @default(false) @map("is_from_our_bot")
+
+  status DsGuildMessageStatus @default(ACTIVE)
+
+  isDeleted Boolean   @default(false) @map("is_deleted")
+  deletedAt DateTime? @map("deleted_at")
+
+  sentAt   DateTime? @map("sent_at")
+  editedAt DateTime? @map("edited_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([channelId, messageId])
+  @@index([guildDbId])
+  @@index([channelId])
+  @@index([messageId])
+  @@index([authorUserId])
+  @@index([status])
+  @@index([isDeleted])
+  @@map("ds_guild_messages")
 }
 
 enum DsBotMessageBlockType {
@@ -366,4 +415,12 @@ enum DsBotMessageDispatchStatus {
   SUCCESS
   FAILED
   PARTIAL
+}
+
+enum DsGuildMessageStatus {
+  ACTIVE
+  MESSAGE_DELETED
+  CHANNEL_DELETED
+  GUILD_DELETED
+  GUILD_UNAVAILABLE
 }

@@ -58,6 +58,11 @@ export class DsBotController {
     return this.dsBotService.getGuildSettingsByConnectionId(connectionId)
   }
 
+  @Get('message-logs/:connectionId')
+  getMessageLogHistory(@Param('connectionId') connectionId: string) {
+    return this.dsBotService.getMessageLogHistoryByConnectionId(connectionId)
+  }
+
   @Get('all')
   all() {
     return this.dsBotService.findAll()

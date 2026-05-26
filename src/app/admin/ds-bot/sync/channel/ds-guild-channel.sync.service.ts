@@ -1,13 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common'
-import {
-  ChannelType,
-  Guild,
-  GuildBasedChannel,
-} from 'discord.js'
+import { ChannelType, Guild, GuildBasedChannel } from 'discord.js'
 
 import { PrismaService } from '@/core/prisma/prisma.service'
-import { DiscordGuildChannelType } from '@prisma/client';
-
+import { DsGuildChannelType } from '@prisma/client'
 
 @Injectable()
 export class DsGuildChannelSyncService {
@@ -27,10 +22,9 @@ export class DsGuildChannelSyncService {
     }
   }
 
-  async upsertGuildChannel(
-    guildDbId: string,
-    channel: GuildBasedChannel,
-  ) {
+  async upsertGuildChannel(guildDbId: string, channel: GuildBasedChannel) {
+    const capabilities = this.getChannelCapabilities(channel)
+
     return this.prisma.dsGuildChannel.upsert({
       where: {
         guildDbId_channelId: {
@@ -39,19 +33,33 @@ export class DsGuildChannelSyncService {
         },
       },
       update: {
-        name: 'name' in channel ? channel.name : null,
+        name: this.getChannelName(channel),
         type: this.mapChannelType(channel.type),
-        position: 'position' in channel ? channel.position : null,
-        parentChannelId: 'parentId' in channel ? channel.parentId : null,
+        position: this.getChannelPosition(channel),
+        parentChannelId: this.getParentChannelId(channel),
+
+        isTextBased: capabilities.isTextBased,
+        isVoiceBased: capabilities.isVoiceBased,
+        isThread: capabilities.isThread,
+        isThreadOnly: capabilities.isThreadOnly,
+        canSendMessages: capabilities.canSendMessages,
+
         isActive: true,
       },
       create: {
         guildDbId,
         channelId: channel.id,
-        name: 'name' in channel ? channel.name : null,
+        name: this.getChannelName(channel),
         type: this.mapChannelType(channel.type),
-        position: 'position' in channel ? channel.position : null,
-        parentChannelId: 'parentId' in channel ? channel.parentId : null,
+        position: this.getChannelPosition(channel),
+        parentChannelId: this.getParentChannelId(channel),
+
+        isTextBased: capabilities.isTextBased,
+        isVoiceBased: capabilities.isVoiceBased,
+        isThread: capabilities.isThread,
+        isThreadOnly: capabilities.isThreadOnly,
+        canSendMessages: capabilities.canSendMessages,
+
         isActive: true,
       },
     })
@@ -67,47 +75,77 @@ export class DsGuildChannelSyncService {
       },
       data: {
         isActive: false,
+        canSendMessages: false,
       },
     })
   }
 
-  private mapChannelType(type: ChannelType): DiscordGuildChannelType {
+  private getChannelCapabilities(channel: GuildBasedChannel) {
+    const isTextBased = channel.isTextBased()
+    const isVoiceBased = channel.isVoiceBased()
+    const isThread = channel.isThread()
+    const isThreadOnly = channel.isThreadOnly()
+
+    const canSendMessages = channel.isSendable() && !isThreadOnly
+
+    return {
+      isTextBased,
+      isVoiceBased,
+      isThread,
+      isThreadOnly,
+      canSendMessages,
+    }
+  }
+
+  private getChannelName(channel: GuildBasedChannel) {
+    return 'name' in channel ? channel.name : null
+  }
+
+  private getChannelPosition(channel: GuildBasedChannel) {
+    return 'position' in channel ? channel.position : null
+  }
+
+  private getParentChannelId(channel: GuildBasedChannel) {
+    return 'parentId' in channel ? channel.parentId : null
+  }
+
+  private mapChannelType(type: ChannelType): DsGuildChannelType {
     switch (type) {
       case ChannelType.GuildText:
-        return DiscordGuildChannelType.TEXT
+        return DsGuildChannelType.TEXT
 
       case ChannelType.GuildVoice:
-        return DiscordGuildChannelType.VOICE
+        return DsGuildChannelType.VOICE
 
       case ChannelType.GuildCategory:
-        return DiscordGuildChannelType.CATEGORY
+        return DsGuildChannelType.CATEGORY
 
       case ChannelType.GuildAnnouncement:
-        return DiscordGuildChannelType.ANNOUNCEMENT
+        return DsGuildChannelType.ANNOUNCEMENT
 
       case ChannelType.GuildStageVoice:
-        return DiscordGuildChannelType.STAGE_VOICE
+        return DsGuildChannelType.STAGE_VOICE
 
       case ChannelType.GuildForum:
-        return DiscordGuildChannelType.FORUM
+        return DsGuildChannelType.FORUM
 
       case ChannelType.GuildMedia:
-        return DiscordGuildChannelType.MEDIA
+        return DsGuildChannelType.MEDIA
 
       case ChannelType.PublicThread:
-        return DiscordGuildChannelType.THREAD_PUBLIC
+        return DsGuildChannelType.THREAD_PUBLIC
 
       case ChannelType.PrivateThread:
-        return DiscordGuildChannelType.THREAD_PRIVATE
+        return DsGuildChannelType.THREAD_PRIVATE
 
       case ChannelType.AnnouncementThread:
-        return DiscordGuildChannelType.THREAD_ANNOUNCEMENT
+        return DsGuildChannelType.THREAD_ANNOUNCEMENT
 
       case ChannelType.GuildDirectory:
-        return DiscordGuildChannelType.DIRECTORY
+        return DsGuildChannelType.DIRECTORY
 
       default:
-        return DiscordGuildChannelType.UNKNOWN
+        return DsGuildChannelType.UNKNOWN
     }
   }
 }

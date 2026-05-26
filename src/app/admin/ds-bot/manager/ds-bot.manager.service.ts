@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { Client, Events, GatewayIntentBits } from 'discord.js'
+import { Client, Events, GatewayIntentBits, Partials } from 'discord.js'
 import { DsBotProfileSyncService } from '../sync/ds-bot/ds-bot-profile.sync.service'
 import { DsBotTokenCryptoService } from './crypto/ds-bot-token-crypto.service'
 import { DsBotSyncService } from '../sync/ds-bot.sync.service'
@@ -36,16 +36,38 @@ export class DsBotManagerService {
 
     const token = this.tokenCrypto.decrypt(secretTokenBot)
     const client = new Client({
-      intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildVoiceStates],
+      intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+      ],
+      partials: [Partials.Message, Partials.Channel],
     })
 
     client.once(Events.ClientReady, async (readyClient) => {
-      await this.profileSync.syncOnce(botId, readyClient)
+      this.events.register(botId, readyClient)
+
+      try {
+        await this.profileSync.syncOnce(botId, readyClient)
+      } catch (error) {
+        this.logger.error(
+          `Failed to sync bot profile on ready: ${botId}`,
+          error,
+        )
+      }
+
       this.profileSync.startAutoSync(botId, readyClient)
 
-      await this.dsBotSync.syncBotGuilds(botId, readyClient)
-
-      this.events.register(botId, readyClient)
+      try {
+        await this.dsBotSync.syncBotGuilds(botId, readyClient)
+      } catch (error) {
+        this.logger.error(
+          `Failed to run initial guild sync on ready: ${botId}`,
+          error,
+        )
+      }
     })
 
     try {

@@ -4,6 +4,7 @@ import { DsBotGuildEventsService } from './guild/ds-bot-guild-event.service'
 import { DsBotMemberEventsService } from './member/ds-bot-member-event.service'
 import { DsBotRoleEventsService } from './role/ds-bot-role-event.service'
 import { DsBotVoiceEventsService } from './voice/ds-bot-voice-event.service'
+import { DsBotMessageEventsService } from './message/ds-bot-message-event.service'
 
 export const dsBotEventProviders = [
   DsBotEventsService,
@@ -12,4 +13,5 @@ export const dsBotEventProviders = [
   DsBotRoleEventsService,
   DsBotChannelEventsService,
   DsBotVoiceEventsService,
+  DsBotMessageEventsService,
 ]
