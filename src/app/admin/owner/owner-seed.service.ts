@@ -5,18 +5,28 @@ import * as argon2 from 'argon2'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { AuthMethod, UserRole } from '@prisma/client'
 
-
 @Injectable()
 export class OwnerSeedService implements OnApplicationBootstrap {
   private readonly logger = new Logger(OwnerSeedService.name)
+  private static readonly AUTH_SETTINGS_ID = 'bonfire-id'
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
-    
   ) {}
 
   async onApplicationBootstrap() {
+    await this.prisma.authSettings.upsert({
+      where: {
+        id: OwnerSeedService.AUTH_SETTINGS_ID,
+      },
+      update: {},
+      create: {
+        id: OwnerSeedService.AUTH_SETTINGS_ID,
+        isRegistrationEnabled: false,
+      },
+    })
+
     const email = this.config.getOrThrow<string>('OWNER_EMAIL')
     const password = this.config.getOrThrow<string>('OWNER_PASSWORD')
     const displayName = this.config.get<string>('OWNER_DISPLAY_NAME') ?? 'Owner'
@@ -41,9 +51,9 @@ export class OwnerSeedService implements OnApplicationBootstrap {
         displayName,
         role: UserRole.OWNER,
         isVerified: true,
-        method: AuthMethod.CREDENTIALS
+        method: AuthMethod.CREDENTIALS,
       },
-    })  
+    })
 
     this.logger.log(`Owner account created: ${email}`)
   }

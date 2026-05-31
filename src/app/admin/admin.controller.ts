@@ -13,15 +13,39 @@ import { CreateUserDto } from '../user/dto/createUser.dto'
 import { Authorization } from '../auth/decorators/auth.decorators'
 import { UserRole } from '@prisma/client'
 import { ResetPasswordDto } from './owner/dto/resetPassword.dto'
+import { UpdateRegistrationSettingsDto } from './owner/dto/updateRegistrationSettings.dto'
+import { AdminService } from './admin.service'
 
 @Controller()
 export class AdminController {
-  constructor(private readonly ownerControlService: OwnerControlService) {}
+  constructor(
+    private readonly ownerControlService: OwnerControlService,
+    private readonly adminService: AdminService,
+  ) {}
+
+  @Authorization(UserRole.OWNER)
+  @Get('get-settings-auth-user')
+  @HttpCode(HttpStatus.OK)
+  async getSettingsAuthUser(): Promise<UpdateRegistrationSettingsDto> {
+    return this.ownerControlService.getSettingsAuthUser()
+  }
+
+  @Authorization(UserRole.OWNER)
+  @Post('set-settings-auth-user')
+  @HttpCode(HttpStatus.OK)
+  async setSettingsAuthUser(
+    @Body() dto: UpdateRegistrationSettingsDto,
+  ): Promise<void> {
+    await this.ownerControlService.setSettingsAuthUser(dto)
+  }
 
   @Authorization(UserRole.OWNER)
   @Post('reset-admin-password/:id')
   @HttpCode(HttpStatus.OK)
-  async resetPasswordAdmin(@Param('id') id: string, @Body() dto: ResetPasswordDto): Promise<boolean> {
+  async resetPasswordAdmin(
+    @Param('id') id: string,
+    @Body() dto: ResetPasswordDto,
+  ): Promise<boolean> {
     return this.ownerControlService.resetPasswordAdmin(id, dto)
   }
 
@@ -46,6 +70,13 @@ export class AdminController {
   @HttpCode(HttpStatus.OK)
   async createAdminUser(@Body() dto: CreateUserDto): Promise<boolean> {
     return this.ownerControlService.createAdminUser(dto)
+  }
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Post('create-user')
+  @HttpCode(HttpStatus.OK)
+  async createUser(@Body() dto: CreateUserDto): Promise<boolean> {
+    return this.adminService.createUser(dto)
   }
 
   @Authorization(UserRole.OWNER)

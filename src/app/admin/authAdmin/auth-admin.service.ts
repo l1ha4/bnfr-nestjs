@@ -87,14 +87,14 @@ export class AuthAdminService {
     email: string
     includePassword?: boolean
   }) {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
+    const user = await this.prisma.user.findFirst({
+      where: { email, role: { in: [UserRole.ADMIN, UserRole.OWNER] } },
     })
 
     if (!user) {
       throw new NotFoundException('Пользователь не найден')
     }
-    
+
     if (user.role !== UserRole.ADMIN && user.role !== UserRole.OWNER) {
       throw new ForbiddenException('Пользователь не является администратором')
     }

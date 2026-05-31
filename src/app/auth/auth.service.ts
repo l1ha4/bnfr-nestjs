@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -13,6 +14,7 @@ import { LoginDto } from './dto/login.dto'
 import { verify } from 'argon2'
 import { Request } from 'express'
 import { Response } from 'express'
+import { PrismaService } from '@/core/prisma/prisma.service'
 
 @Injectable()
 export class AuthService {
@@ -26,17 +28,35 @@ export class AuthService {
   }
 
   public constructor(
+    private readonly prismaService: PrismaService,
     private readonly userService: UserService,
     private readonly configService: ConfigService,
   ) {}
   public async register(req: Request, dto: RegisterDto) {
+    const authSettings = await this.prismaService.authSettings.upsert({
+      where: {
+        id: 'bonfire-id',
+      },
+      update: {},
+      create: {
+        id: 'bonfire-id',
+        isRegistrationEnabled: false,
+      },
+    })
+
+    if (!authSettings.isRegistrationEnabled) {
+      throw new ForbiddenException(
+        'Регистрация пользователей временно отключена',
+      )
+    }
+    
     this.logger.log(`Попытка регистрации: email=${dto.email}`)
 
     const isExists = await this.userService.findByEmail(dto.email)
 
     if (isExists) {
       this.logger.warn(`Регистрация отклонена — email уже занят: ${dto.email}`)
-      throw new Error('Пользователь с таким email уже существует.')
+      throw new ForbiddenException('Пользователь с таким email уже существует.')
     }
 
     const newUser = await this.userService.create({

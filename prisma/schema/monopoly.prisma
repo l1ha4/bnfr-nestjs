@@ -1,0 +1,169 @@
+enum MonopolyCellPosition {
+  TOP
+  RIGHT
+  BOTTOM
+  LEFT
+  TOP_LEFT
+  TOP_RIGHT
+  BOTTOM_LEFT
+  BOTTOM_RIGHT
+}
+
+enum MonopolyCellElementType {
+  CELL
+  ANGLE
+}
+
+enum MonopolyCellType {
+  STREET
+  CHANCE
+  COMMUNITY
+  COMMUNITY_CHEST
+  START
+  JAIL
+  PARKING
+  FREE_PARKING
+  GO_TO_JAIL
+  TAX
+  RAILROAD
+  UTILITY
+  CUSTOM
+}
+
+enum MonopolyActionType {
+  RECEIVE_MONEY
+  PAY_MONEY
+  MOVE_TO_CELL
+  MOVE_STEPS
+  SKIP_TURN
+  GO_TO_JAIL
+  CUSTOM
+}
+
+model MonopolyGameTemplate {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  fieldWidthCells  Int @default(11)
+  fieldHeightCells Int @default(11)
+
+  moneyPerLap Int @default(200)
+  minPlayers  Int @default(2)
+  maxPlayers  Int @default(6)
+  startMoney  Int @default(1500)
+
+  cells             MonopolyCellTemplate[]
+  streetCollections MonopolyStreetCollectionTemplate[]
+  cardGroups        MonopolyCardGroupTemplate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@map("monopoly_game_templates")
+}
+
+model MonopolyCellTemplate {
+  id String @id @default(uuid())
+
+  templateId String               @map("template_id")
+  template   MonopolyGameTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  orderIndex Int @map("order_index")
+
+  name String
+
+  position    MonopolyCellPosition
+  typeElement MonopolyCellElementType @map("type_element")
+
+  type  MonopolyCellType?
+  price Int?
+
+  collectionId String?                           @map("collection_id")
+  collection   MonopolyStreetCollectionTemplate? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  targetCardActions MonopolyCardActionTemplate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([templateId, orderIndex])
+  @@index([templateId])
+  @@index([collectionId])
+  @@map("monopoly_cell_templates")
+}
+
+model MonopolyStreetCollectionTemplate {
+  id String @id @default(uuid())
+
+  templateId String               @map("template_id")
+  template   MonopolyGameTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  name String
+
+  cells MonopolyCellTemplate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([templateId])
+  @@map("monopoly_street_collection_templates")
+}
+
+model MonopolyCardGroupTemplate {
+  id String @id @default(uuid())
+
+  templateId String               @map("template_id")
+  template   MonopolyGameTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  title String
+
+  cards MonopolyCardTemplate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([templateId])
+  @@map("monopoly_card_group_templates")
+}
+
+model MonopolyCardTemplate {
+  id String @id @default(uuid())
+
+  groupId String                    @map("group_id")
+  group   MonopolyCardGroupTemplate @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+
+  actions MonopolyCardActionTemplate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([groupId])
+  @@map("monopoly_card_templates")
+}
+
+model MonopolyCardActionTemplate {
+  id String @id @default(uuid())
+
+  cardId String               @map("card_id")
+  card   MonopolyCardTemplate @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  actionType MonopolyActionType @map("action_type")
+
+  amount Int?
+
+  targetCellId String?               @map("target_cell_id")
+  targetCell   MonopolyCellTemplate? @relation(fields: [targetCellId], references: [id], onDelete: SetNull)
+
+  text String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cardId])
+  @@index([targetCellId])
+  @@map("monopoly_card_action_templates")
+}

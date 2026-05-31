@@ -33,9 +33,10 @@ export class UserService {
   }
 
   public async findByEmail(email: string) {
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findFirst({
       where: {
         email,
+        role: UserRole.REGULAR,
       },
       include: {
         accounts: true,

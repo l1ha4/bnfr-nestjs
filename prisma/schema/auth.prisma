@@ -1,6 +1,6 @@
 model User {
   id          String   @id @default(uuid())
-  email       String   @unique
+  email       String
   password    String
   displayName String
   picture     String?
@@ -50,6 +50,19 @@ model Token {
   expiresIn DateTime  @map("expires_in")
 
   @@map("tokens")
+}
+
+model AuthSettings {
+  id String @id @default("bonfire-id")
+
+  isRegistrationEnabled Boolean @default(false) @map("is_registration_enabled")
+
+  updatedById String? @map("updated_by_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("auth_settings")
 }
 
 enum UserRole {

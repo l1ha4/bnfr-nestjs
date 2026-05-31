@@ -9,9 +9,12 @@ import {
 } from '@nestjs/common'
 import { AuthMethod } from '@prisma/client'
 
+import { UserRole } from '@prisma/client'
+
 import { AuthAdminService } from '../authAdmin/auth-admin.service'
 import * as argon2 from 'argon2'
 import { ResetPasswordDto } from './dto/resetPassword.dto'
+import { UpdateRegistrationSettingsDto } from './dto/updateRegistrationSettings.dto'
 @Injectable()
 export class OwnerControlService {
   public constructor(
@@ -20,10 +23,40 @@ export class OwnerControlService {
     private readonly authAdminService: AuthAdminService,
   ) {}
 
+  async getSettingsAuthUser() {
+    const authSettings = await this.prisma.authSettings.upsert({
+      where: {
+        id: 'bonfire-id',
+      },
+      update: {},
+      create: {
+        id: 'bonfire-id',
+        isRegistrationEnabled: false,
+      },
+    })
+    return authSettings
+  }
+
+  async setSettingsAuthUser(dto: UpdateRegistrationSettingsDto) {
+    await this.prisma.authSettings.upsert({
+      where: {
+        id: 'bonfire-id',
+      },
+      update: {
+        isRegistrationEnabled: dto.isRegistrationEnabled,
+      },
+      create: {
+        id: 'bonfire-id',
+        isRegistrationEnabled: dto.isRegistrationEnabled,
+      },
+    })
+  }
+
   async resetEmailOwner(newEmail: string): Promise<boolean> {
-    const existingUser = await this.prisma.user.findUnique({
+    const existingUser = await this.prisma.user.findFirst({
       where: {
         email: newEmail,
+        role: UserRole.OWNER,
       },
     })
 
@@ -54,7 +87,7 @@ export class OwnerControlService {
   }
 
   async resetEmailAdmin(id: string, newEmail: string): Promise<boolean> {
-    const existingUser = await this.prisma.user.findUnique({
+    const existingUser = await this.prisma.user.findFirst({
       where: {
         email: newEmail,
       },
@@ -181,7 +214,7 @@ export class OwnerControlService {
   }
 
   async createAdminUser(dto: CreateUserDto): Promise<boolean> {
-    const existingUser = await this.prisma.user.findUnique({
+    const existingUser = await this.prisma.user.findFirst({
       where: {
         email: dto.email,
       },

@@ -6,9 +6,10 @@ import { OwnerControlService } from './owner/owner-control.service'
 import { UserModule } from '../user/user.module'
 import { AdminService } from './admin.service'
 import { AuthAdminModule } from './authAdmin/auth-admin.module'
+import { MonopolyAdminModule } from './monopoly/monopoly-admin.module'
 
 @Module({
-  imports: [DsBotModule, UserModule, AuthAdminModule],
+  imports: [DsBotModule, UserModule, AuthAdminModule, MonopolyAdminModule],
   controllers: [AdminController],
   providers: [OwnerSeedService, OwnerControlService, AdminService],
 })
