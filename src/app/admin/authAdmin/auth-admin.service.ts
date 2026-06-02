@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common'
 import { UserRole } from '@prisma/client'
-import { Request } from 'express'
+import { Request, Response } from 'express'
 import { LoginDto } from '../../auth/dto/login.dto'
 import { verify } from 'argon2'
 import { AuthService } from '../../auth/auth.service'
@@ -59,6 +59,10 @@ export class AuthAdminService {
         }
       })
     })
+  }
+
+  public clearSessionAdmin(req: Request, res: Response): { success: boolean } {
+    return this.authService.clearSession(req, res)
   }
 
   public async findByIdAdmin(userId: string) {

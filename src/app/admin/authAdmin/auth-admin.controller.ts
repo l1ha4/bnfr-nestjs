@@ -6,10 +6,11 @@ import {
   HttpStatus,
   Post,
   Req,
+  Res,
   UnauthorizedException,
 } from '@nestjs/common'
 import { AuthAdminService } from './auth-admin.service'
-import type { Request } from 'express'
+import type { Request, Response } from 'express'
 import { LoginDto } from '../../auth/dto/login.dto'
 import { Authorization } from '@/app/auth/decorators/auth.decorators'
 import { User } from 'discord.js'
@@ -42,5 +43,14 @@ export class AuthAdminController {
   @HttpCode(HttpStatus.OK)
   public async logoutAdmin(@Req() req: Request): Promise<boolean> {
     return this.authAdminService.logoutAdmin(req)
+  }
+
+  @Post('clear-session')
+  @HttpCode(HttpStatus.OK)
+  public clearSession(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authAdminService.clearSessionAdmin(req, res)
   }
 }

@@ -39,4 +39,13 @@ export class AuthController {
   ) {
     return this.authService.logout(req, res)
   }
+
+  @Post('clear-session')
+  @HttpCode(HttpStatus.OK)
+  public clearSession(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.authService.clearSession(req, res)
+  }
 }

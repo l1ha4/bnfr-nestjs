@@ -49,7 +49,7 @@ export class AuthService {
         'Регистрация пользователей временно отключена',
       )
     }
-    
+
     this.logger.log(`Попытка регистрации: email=${dto.email}`)
 
     const isExists = await this.userService.findByEmail(dto.email)
@@ -125,6 +125,18 @@ export class AuthService {
         resolve()
       })
     })
+  }
+
+  public clearSession(req: Request, res: Response): { success: boolean } {
+    req.session?.destroy?.(() => {})
+    res.clearCookie(this.configService.getOrThrow<string>('SESSION_NAME'), {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      domain: this.configService.getOrThrow<string>('SESSION_DOMAIN'),
+      path: '/',
+    })
+    return { success: true }
   }
 
   public async saveSession(req: Request, user: User) {
