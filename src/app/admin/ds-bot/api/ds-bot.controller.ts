@@ -93,6 +93,7 @@ export class DsBotController {
     return this.dsBotService.setEnabled(id, dto.isEnabled)
   }
 
+  @Authorization(UserRole.OWNER)
   @Delete('delete/:id')
   delete(@Param('id') id: string) {
     return this.dsBotService.delete(id)
