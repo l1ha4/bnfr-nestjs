@@ -57,8 +57,11 @@ model MonopolyGameTemplate {
   streetCollections MonopolyStreetCollectionTemplate[]
   cardGroups        MonopolyCardGroupTemplate[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  isPublic Boolean @default(false)
+
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @default(now()) @updatedAt
+  monopolyGameSessions MonopolyGameSession[]
 
   @@map("monopoly_game_templates")
 }
@@ -166,4 +169,87 @@ model MonopolyCardActionTemplate {
   @@index([cardId])
   @@index([targetCellId])
   @@map("monopoly_card_action_templates")
+}
+
+model MonopolyGameSession {
+  id String @id @default(uuid())
+
+  templateId String               @map("template_id")
+  template   MonopolyGameTemplate @relation(fields: [templateId], references: [id])
+
+  status MonopolyGameSessionStatus @default(WAITING)
+
+  name String?
+
+  maxPlayers Int
+  minPlayers Int
+
+  currentTurnPlayerId String? @map("current_turn_player_id")
+  currentRound        Int     @default(1)
+
+  createdById String @map("created_by_id")
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  startedAt  DateTime? @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+
+  players MonopolyGameSessionPlayer[]
+
+  @@map("monopoly_game_sessions")
+}
+
+model MonopolyGameSessionPlayer {
+  id String @id @default(uuid())
+
+  sessionId String              @map("session_id")
+  session   MonopolyGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  userId String @map("user_id")
+
+  money    Int
+  position Int @default(0)
+
+  colorId    String? @map("color_id")
+  figurineId String? @map("figurine_id")
+
+  isBankrupt Boolean @default(false) @map("is_bankrupt")
+  isReady    Boolean @default(false) @map("is_ready")
+
+  joinedAt  DateTime @default(now()) @map("joined_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  properties MonopolyGameSessionProperty[]
+
+  @@unique([sessionId, userId])
+  @@map("monopoly_game_session_players")
+}
+
+model MonopolyGameSessionProperty {
+  id String @id @default(uuid())
+
+  sessionId       String  @map("session_id")
+  sessionPlayerId String? @map("session_player_id")
+
+  player MonopolyGameSessionPlayer? @relation(fields: [sessionPlayerId], references: [id], onDelete: SetNull)
+
+  cellTemplateId String @map("cell_template_id")
+
+  level Int @default(0)
+
+  isMortgaged Boolean @default(false) @map("is_mortgaged")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([sessionId, cellTemplateId])
+  @@map("monopoly_game_session_properties")
+}
+
+enum MonopolyGameSessionStatus {
+  WAITING
+  ACTIVE
+  PAUSED
+  FINISHED
+  CANCELLED
 }
