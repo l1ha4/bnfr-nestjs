@@ -23,7 +23,6 @@ export class AdminController {
     private readonly adminService: AdminService,
   ) {}
 
-  @Authorization(UserRole.OWNER)
   @Get('get-settings-auth-user')
   @HttpCode(HttpStatus.OK)
   async getSettingsAuthUser(): Promise<UpdateRegistrationSettingsDto> {

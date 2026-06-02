@@ -87,7 +87,8 @@ export class DsBotController {
   getEnabled(@Param('id') id: string) {
     return this.dsBotService.getEnabled(id)
   }
-
+  
+  @Authorization(UserRole.OWNER)
   @Patch('enabled/:id')
   setEnabled(@Param('id') id: string, @Body() dto: SetDsBotEnabledDto) {
     return this.dsBotService.setEnabled(id, dto.isEnabled)
