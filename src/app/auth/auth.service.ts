@@ -15,6 +15,9 @@ import { verify } from 'argon2'
 import { Request } from 'express'
 import { Response } from 'express'
 import { PrismaService } from '@/core/prisma/prisma.service'
+import ms, { StringValue } from 'ms'
+import { parseBoolean } from '@/common/utils/parse-boolean.utils'
+import { createSessionCookieOptions } from '@/common/utils/session-cookie.utils'
 
 @Injectable()
 export class AuthService {
@@ -32,6 +35,20 @@ export class AuthService {
     private readonly userService: UserService,
     private readonly configService: ConfigService,
   ) {}
+
+  private getSessionCookieOptions() {
+    return createSessionCookieOptions({
+      domain: this.configService.get<string>('SESSION_DOMAIN'),
+      maxAge: ms(this.configService.getOrThrow<StringValue>('SESSION_MAX_AGE')),
+      httpOnly: parseBoolean(
+        this.configService.getOrThrow<string>('SESSION_HTTP_ONLY'),
+      ),
+      secure: parseBoolean(
+        this.configService.getOrThrow<string>('SESSION_SECURE'),
+      ),
+    })
+  }
+
   public async register(req: Request, dto: RegisterDto) {
     const authSettings = await this.prismaService.authSettings.upsert({
       where: {
@@ -121,7 +138,10 @@ export class AuthService {
         this.logger.log(
           `Сессия уничтожена: userId=${userId}, sessionId=${sessionId}`,
         )
-        res.clearCookie(this.configService.getOrThrow<string>('SESSION_NAME'))
+        res.clearCookie(
+          this.configService.getOrThrow<string>('SESSION_NAME'),
+          this.getSessionCookieOptions(),
+        )
         resolve()
       })
     })
@@ -129,13 +149,10 @@ export class AuthService {
 
   public clearSession(req: Request, res: Response): { success: boolean } {
     req.session?.destroy?.(() => {})
-    res.clearCookie(this.configService.getOrThrow<string>('SESSION_NAME'), {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      domain: this.configService.getOrThrow<string>('SESSION_DOMAIN'),
-      path: '/',
-    })
+    res.clearCookie(
+      this.configService.getOrThrow<string>('SESSION_NAME'),
+      this.getSessionCookieOptions(),
+    )
     return { success: true }
   }
 
