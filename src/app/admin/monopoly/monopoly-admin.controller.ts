@@ -14,6 +14,7 @@ import { Authorization } from '@/app/auth/decorators/auth.decorators'
 import { MonopolyAdminService } from './monopoly-admin.service'
 import { CreateMonopolyFormDto } from './dto/create-monopoly-form.dto'
 import { CreateMonopolyFigurineDto } from './dto/monopoly-create-figurine.dto'
+import { CreateMonopolyPlayerColorDto } from './dto/monopoly-create-player-color.dto'
 
 @Controller()
 export class MonopolyAdminController {
@@ -22,11 +23,39 @@ export class MonopolyAdminController {
   ) {}
 
   @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Get('player-colors')
+  @HttpCode(HttpStatus.OK)
+  public async allPlayerColors(): Promise<
+    { id: string; name: string; hexCode: string }[]
+  > {
+    return this.monopolyAdminService.allPlayerColors()
+  }
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Post('player-color/create')
+  @HttpCode(HttpStatus.OK)
+  public async createPlayerColor(
+    @Body() dto: CreateMonopolyPlayerColorDto,
+  ): Promise<{ id: string }> {
+    return this.monopolyAdminService.createPlayerColor(dto)
+  }
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Delete('player-color/:id')
+  @HttpCode(HttpStatus.OK)
+  public async deletePlayerColor(@Param('id') id: string): Promise<boolean> {
+    return this.monopolyAdminService.deletePlayerColor(id)
+  }
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
   @Get('figurine/:id')
   @HttpCode(HttpStatus.OK)
-  public async findByIdFigurine(
-    @Param('id') id: string,
-  ): Promise<{ id: string; name: string; url: string }> {
+  public async findByIdFigurine(@Param('id') id: string): Promise<{
+    id: string
+    name: string
+    url: string
+    collectionId?: string | null
+  }> {
     return this.monopolyAdminService.findFigurineById(id)
   }
 
@@ -34,9 +63,49 @@ export class MonopolyAdminController {
   @Get('figurines')
   @HttpCode(HttpStatus.OK)
   public async allFigurines(): Promise<
-    { id: string; name: string; url: string }[]
+    { id: string; name: string; url: string; collectionId?: string | null }[]
   > {
     return this.monopolyAdminService.allFigurines()
+  }
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Get('figurine-collections')
+  @HttpCode(HttpStatus.OK)
+  public async allCollections() {
+    return this.monopolyAdminService.allCollections()
+  }
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Get('figurine-collection/:id')
+  @HttpCode(HttpStatus.OK)
+  public async findCollectionById(@Param('id') id: string) {
+    return this.monopolyAdminService.findCollectionById(id)
+  }
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Post('figurine-collection/create')
+  @HttpCode(HttpStatus.OK)
+  public async createCollection(
+    @Body() dto: { name: string; figurineIds: string[] },
+  ) {
+    return this.monopolyAdminService.createCollection(dto)
+  }
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Patch('figurine-collection/:id')
+  @HttpCode(HttpStatus.OK)
+  public async updateCollection(
+    @Param('id') id: string,
+    @Body() dto: { name: string; figurineIds: string[] },
+  ) {
+    return this.monopolyAdminService.updateCollection(id, dto)
+  }
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Delete('figurine-collection/:id')
+  @HttpCode(HttpStatus.OK)
+  public async deleteCollection(@Param('id') id: string) {
+    return this.monopolyAdminService.deleteCollection(id)
   }
 
   @Authorization(UserRole.ADMIN, UserRole.OWNER)

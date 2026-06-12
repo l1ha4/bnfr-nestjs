@@ -299,3 +299,5 @@ model MonopolyPlayerColor {
 
   @@map("monopoly_player_colors")
 }
+
+
