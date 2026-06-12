@@ -2,17 +2,17 @@ import { Controller, Get, Post, Body, Delete, Req, Param } from '@nestjs/common'
 import { MonopolyService } from './monopoly.service'
 import { CreateSessionDto } from './dto/create-session.dto'
 import type { Request } from 'express'
-import { Authorization } from '../auth/decorators/auth.decorators'
+import { Authorization } from '../../auth/decorators/auth.decorators'
 
 @Controller('monopoly')
 export class MonopolyController {
   constructor(private readonly monopolyService: MonopolyService) {}
 
   @Authorization()
-  @Post('session/${sessionId}/add-player')
-  connectToSession(@Body('id') id: string, @Req() req: Request) {
-    return this.monopolyService.connectToSession(id, req)
-  }d
+  @Post('session/:sessionId/add-player')
+  connectToSession(@Param('sessionId') sessionId: string, @Req() req: Request) {
+    return this.monopolyService.connectToSession(sessionId, req)
+  }
 
   @Authorization()
   @Get('sessions')

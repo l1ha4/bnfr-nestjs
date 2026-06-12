@@ -13,12 +13,51 @@ import { UserRole } from '@prisma/client'
 import { Authorization } from '@/app/auth/decorators/auth.decorators'
 import { MonopolyAdminService } from './monopoly-admin.service'
 import { CreateMonopolyFormDto } from './dto/create-monopoly-form.dto'
+import { CreateMonopolyFigurineDto } from './dto/monopoly-create-figurine.dto'
 
 @Controller()
 export class MonopolyAdminController {
   public constructor(
     private readonly monopolyAdminService: MonopolyAdminService,
   ) {}
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Get('figurine/:id')
+  @HttpCode(HttpStatus.OK)
+  public async findByIdFigurine(
+    @Param('id') id: string,
+  ): Promise<{ id: string; name: string; url: string }> {
+    return this.monopolyAdminService.findFigurineById(id)
+  }
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Get('figurines')
+  @HttpCode(HttpStatus.OK)
+  public async allFigurines(): Promise<
+    { id: string; name: string; url: string }[]
+  > {
+    return this.monopolyAdminService.allFigurines()
+  }
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Patch('figurine/:id')
+  @HttpCode(HttpStatus.OK)
+  public async updateFigurine(
+    @Param('id') id: string,
+    @Body()
+    dto: { name: string; url: string; collectionId?: string },
+  ): Promise<boolean> {
+    return this.monopolyAdminService.updateFigurine(id, dto)
+  }
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Post('figurine/create')
+  @HttpCode(HttpStatus.OK)
+  public async createFigurine(
+    @Body() dto: CreateMonopolyFigurineDto,
+  ): Promise<boolean> {
+    return this.monopolyAdminService.createFigurine(dto)
+  }
 
   @Authorization(UserRole.ADMIN, UserRole.OWNER)
   @Post('form')

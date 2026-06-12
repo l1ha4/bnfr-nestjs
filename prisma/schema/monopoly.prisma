@@ -1,3 +1,5 @@
+// * TEMPLATE
+
 enum MonopolyCellPosition {
   TOP
   RIGHT
@@ -171,6 +173,8 @@ model MonopolyCardActionTemplate {
   @@map("monopoly_card_action_templates")
 }
 
+// * GAME SESSION
+
 model MonopolyGameSession {
   id String @id @default(uuid())
 
@@ -252,4 +256,46 @@ enum MonopolyGameSessionStatus {
   PAUSED
   FINISHED
   CANCELLED
+}
+
+// * FIGURINES AND COLORS
+
+model MonopolyFigurine {
+  id String @id @default(uuid())
+
+  name String
+  url  String
+
+  collectionId String?                     @map("collection_id")
+  collection   MonopolyFigurineCollection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("monopoly_figurines")
+}
+
+model MonopolyFigurineCollection {
+  id String @id @default(uuid())
+
+  name String
+
+  figurines MonopolyFigurine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("monopoly_figurine_collections")
+}
+
+model MonopolyPlayerColor {
+  id String @id @default(uuid())
+
+  name    String
+  hexCode String @map("hex_code")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("monopoly_player_colors")
 }

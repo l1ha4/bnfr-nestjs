@@ -4,44 +4,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common'
-import { CreateSessionDto } from './dto/create-session.dto'
-import { PrismaService } from '@/core/prisma/prisma.service'
 import type { Request } from 'express'
-import { MonopolySessionsGateway } from './monopoly-sessions.gateway'
-import { MonopolyGameSessionStatus } from '@prisma/client'
+import { PrismaService } from '@/core/prisma/prisma.service'
+import { CreateSessionDto } from '../../api/dto/create-session.dto'
+import { MonopolyWebsocketGateway } from '../../websocket/monopoly-websocket.gateway'
 
 @Injectable()
-export class MonopolyService {
+export class SessionManager {
   public constructor(
     private readonly prisma: PrismaService,
-    private readonly sessionsGateway: MonopolySessionsGateway,
+    private readonly monopolyGateway: MonopolyWebsocketGateway,
   ) {}
 
-  getListSessions() {
-    return this.prisma.monopolyGameSession.findMany({
-      where: {
-        status: MonopolyGameSessionStatus.WAITING,
-      },
-      select: {
-        id: true,
-        name: true,
-        createdById: true,
-        minPlayers: true,
-        maxPlayers: true,
-        templateId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    })
-  }
-
-  findAllPubicTemplate() {
-    return this.prisma.monopolyGameTemplate.findMany({
-      where: { isPublic: true },
-    })
-  }
-
-  async findSessionById(id: string) {
+  public async findSessionById(id: string) {
     const session = await this.prisma.monopolyGameSession.findUnique({
       where: { id },
       include: {
@@ -78,7 +53,7 @@ export class MonopolyService {
     return session
   }
 
-  async createSession(createSessionDto: CreateSessionDto, req: Request) {
+  public async createSession(createSessionDto: CreateSessionDto, req: Request) {
     const userId = req.session.userId
 
     const userSessionsCount = await this.prisma.monopolyGameSessionPlayer.count(
@@ -120,7 +95,7 @@ export class MonopolyService {
       },
     })
 
-    this.sessionsGateway.sendSessionCreated({
+    this.monopolyGateway.sendSessionCreated({
       id: session.id,
       name: session.name,
       minPlayers: session.minPlayers,
@@ -131,7 +106,7 @@ export class MonopolyService {
     return { id: session.id }
   }
 
-  async deleteSession(id: string) {
+  public async deleteSession(id: string) {
     const result = await this.prisma.monopolyGameSession.deleteMany({
       where: { id },
     })
@@ -140,18 +115,18 @@ export class MonopolyService {
       throw new NotFoundException('Сессия не найдена')
     }
 
-    this.sessionsGateway.sendSessionDeleted(id)
+    this.monopolyGateway.sendSessionDeleted(id)
 
     return true
   }
 
-  exitSession(id: string, req: Request) {
+  public exitSession(id: string, req: Request) {
     return this.prisma.monopolyGameSessionPlayer.deleteMany({
       where: { sessionId: id, userId: req.session.userId },
     })
   }
 
-  async connectToSession(id: string, req: Request) {
+  public async connectToSession(id: string, req: Request) {
     if (!id) {
       throw new BadRequestException('Не передан id сессии')
     }
@@ -196,12 +171,16 @@ export class MonopolyService {
       throw new ConflictException('Сессия уже полна')
     }
 
-    return this.prisma.monopolyGameSessionPlayer.create({
+    const player = await this.prisma.monopolyGameSessionPlayer.create({
       data: {
         sessionId: id,
         userId,
         money: template.startMoney,
       },
     })
+
+    this.monopolyGateway.sendPlayerJoined(id, player)
+
+    return true
   }
 }
