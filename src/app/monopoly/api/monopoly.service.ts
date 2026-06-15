@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { CreateSessionDto } from './dto/create-session.dto'
+import { UpdatePlayerReadyDto } from './dto/update-player-ready.dto'
 import type { Request } from 'express'
 import { ListSessionManager } from '../manager/listSession/list-session.manager'
 import { SessionManager } from '../manager/session/session.manager'
@@ -25,6 +26,18 @@ export class MonopolyService {
     return this.sessionManager.findSessionById(id)
   }
 
+  async getFigurineCollections() {
+    return this.sessionManager.getFigurineCollections()
+  }
+
+  async getCollectionFigurines(collectionId: string) {
+    return this.sessionManager.getCollectionFigurines(collectionId)
+  }
+
+  async getPlayerColors() {
+    return this.sessionManager.getPlayerColors()
+  }
+
   async createSession(createSessionDto: CreateSessionDto, req: Request) {
     return this.sessionManager.createSession(createSessionDto, req)
   }
@@ -39,5 +52,9 @@ export class MonopolyService {
 
   async connectToSession(id: string, req: Request) {
     return this.sessionManager.connectToSession(id, req)
+  }
+
+  async readyPlayer(id: string, dto: UpdatePlayerReadyDto, req: Request) {
+    return this.sessionManager.readyPlayer(id, dto, req)
   }
 }

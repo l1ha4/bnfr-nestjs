@@ -3,7 +3,6 @@ import { Server, Socket } from 'socket.io'
 
 import { MonopolySessionWsEvent } from './monopoly-session.ws.events'
 import { getMonopolySessionRoom } from './session.ws.rooms'
-import { MonopolyGameSessionPlayer } from '@prisma/client'
 
 @Injectable()
 export class SessionWsService {
@@ -29,21 +28,13 @@ export class SessionWsService {
     }
   }
 
-  public sendPlayerJoined(
-    server: Server,
-    sessionId: string,
-    payload: { userId: string },
-  ) {
+  public sendPlayerJoined(server: Server, sessionId: string, payload: unknown) {
     server
       .to(getMonopolySessionRoom(sessionId))
       .emit(MonopolySessionWsEvent.PLAYER_JOINED, payload)
   }
 
-  public sendPlayerLeft(
-    server: Server,
-    sessionId: string,
-    payload: MonopolyGameSessionPlayer,
-  ) {
+  public sendPlayerLeft(server: Server, sessionId: string, payload: unknown) {
     server
       .to(getMonopolySessionRoom(sessionId))
       .emit(MonopolySessionWsEvent.PLAYER_LEFT, payload)

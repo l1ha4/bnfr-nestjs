@@ -5,7 +5,6 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets'
-import type { MonopolyGameSessionPlayer } from '@prisma/client'
 import { Server, Socket } from 'socket.io'
 import { ListSessionsWsService } from './listSessions/monopoly-listSessions.gateway'
 import { SessionWsService } from './session/session.ws.service'
@@ -64,10 +63,11 @@ export class MonopolyWebsocketGateway {
     return this.sessionWsService.unsubscribe(client, body.sessionId)
   }
 
-  public sendPlayerJoined(
-    sessionId: string,
-    payload: MonopolyGameSessionPlayer,
-  ) {
+  public sendPlayerJoined(sessionId: string, payload: unknown) {
     this.sessionWsService.sendPlayerJoined(this.server, sessionId, payload)
+  }
+
+  public sendStateUpdated(sessionId: string, payload: unknown) {
+    this.sessionWsService.sendStateUpdated(this.server, sessionId, payload)
   }
 }

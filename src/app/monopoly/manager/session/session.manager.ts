@@ -1,109 +1,45 @@
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import type { Request } from 'express'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { CreateSessionDto } from '../../api/dto/create-session.dto'
+import { UpdatePlayerReadyDto } from '../../api/dto/update-player-ready.dto'
 import { MonopolyWebsocketGateway } from '../../websocket/monopoly-websocket.gateway'
+import { ColorManager } from './connection/color/color.manager'
+import { FigurinesManager } from './connection/figurines/figurines.manager'
+import { ConnectionPlayerManager } from './connection/connectionPlayer/connection-player.manager'
+import { PlayerReadyManager } from './connection/playerReady/player-ready.manager'
+import { CreateSessionManager } from './createSession/create-session.manager'
 
 @Injectable()
 export class SessionManager {
   public constructor(
     private readonly prisma: PrismaService,
     private readonly monopolyGateway: MonopolyWebsocketGateway,
+    private readonly createSessionManager: CreateSessionManager,
+    private readonly connectionPlayerManager: ConnectionPlayerManager,
+    private readonly playerReadyManager: PlayerReadyManager,
+    private readonly colorManager: ColorManager,
+    private readonly figurinesManager: FigurinesManager,
   ) {}
 
   public async findSessionById(id: string) {
-    const session = await this.prisma.monopolyGameSession.findUnique({
-      where: { id },
-      include: {
-        template: {
-          include: {
-            cells: {
-              orderBy: {
-                orderIndex: 'asc',
-              },
-            },
-            streetCollections: {
-              include: {
-                cells: {
-                  orderBy: {
-                    orderIndex: 'asc',
-                  },
-                },
-              },
-            },
-          },
-        },
-        players: {
-          orderBy: {
-            joinedAt: 'asc',
-          },
-        },
-      },
-    })
+    return this.playerReadyManager.findSessionById(id)
+  }
 
-    if (!session) {
-      throw new NotFoundException('Сессия не найдена')
-    }
+  public async getFigurineCollections() {
+    return this.figurinesManager.getFigurineCollections()
+  }
 
-    return session
+  public async getCollectionFigurines(collectionId: string) {
+    return this.figurinesManager.getCollectionFigurines(collectionId)
+  }
+
+  public async getPlayerColors() {
+    return this.colorManager.getPlayerColors()
   }
 
   public async createSession(createSessionDto: CreateSessionDto, req: Request) {
-    const userId = req.session.userId
-
-    const userSessionsCount = await this.prisma.monopolyGameSessionPlayer.count(
-      {
-        where: { userId },
-      },
-    )
-
-    if (userSessionsCount >= 1) {
-      throw new ConflictException('Пользователь уже участвует в сессии')
-    }
-
-    const template = await this.prisma.monopolyGameTemplate.findUniqueOrThrow({
-      where: { id: createSessionDto.templateId },
-      select: {
-        minPlayers: true,
-        maxPlayers: true,
-        startMoney: true,
-      },
-    })
-
-    const session = await this.prisma.monopolyGameSession.create({
-      data: {
-        name: createSessionDto.name,
-        minPlayers: template.minPlayers,
-        maxPlayers: template.maxPlayers,
-        template: {
-          connect: { id: createSessionDto.templateId },
-        },
-        createdById: req.session.userId,
-      },
-    })
-
-    await this.prisma.monopolyGameSessionPlayer.create({
-      data: {
-        userId: req.session.userId,
-        sessionId: session.id,
-        money: template.startMoney,
-      },
-    })
-
-    this.monopolyGateway.sendSessionCreated({
-      id: session.id,
-      name: session.name,
-      minPlayers: session.minPlayers,
-      maxPlayers: session.maxPlayers,
-      templateId: session.templateId,
-    })
-
-    return { id: session.id }
+    return this.createSessionManager.createSession(createSessionDto, req)
   }
 
   public async deleteSession(id: string) {
@@ -127,60 +63,14 @@ export class SessionManager {
   }
 
   public async connectToSession(id: string, req: Request) {
-    if (!id) {
-      throw new BadRequestException('Не передан id сессии')
-    }
+    return this.connectionPlayerManager.connectToSession(id, req)
+  }
 
-    const userId = req.session.userId
-
-    const [session, userSessionsCount, sessionPlayersCount] = await Promise.all(
-      [
-        this.prisma.monopolyGameSession.findUnique({
-          where: { id },
-          select: {
-            id: true,
-            maxPlayers: true,
-            templateId: true,
-          },
-        }),
-        this.prisma.monopolyGameSessionPlayer.count({
-          where: { userId },
-        }),
-        this.prisma.monopolyGameSessionPlayer.count({
-          where: { sessionId: id },
-        }),
-      ],
-    )
-
-    if (!session) {
-      throw new NotFoundException('Сессия не найдена')
-    }
-
-    const template = await this.prisma.monopolyGameTemplate.findUniqueOrThrow({
-      where: { id: session.templateId },
-      select: {
-        startMoney: true,
-      },
-    })
-
-    if (userSessionsCount >= 1) {
-      throw new ConflictException('Пользователь уже участвует в сессии')
-    }
-
-    if (sessionPlayersCount >= session.maxPlayers) {
-      throw new ConflictException('Сессия уже полна')
-    }
-
-    const player = await this.prisma.monopolyGameSessionPlayer.create({
-      data: {
-        sessionId: id,
-        userId,
-        money: template.startMoney,
-      },
-    })
-
-    this.monopolyGateway.sendPlayerJoined(id, player)
-
-    return true
+  public async readyPlayer(
+    id: string,
+    dto: UpdatePlayerReadyDto,
+    req: Request,
+  ) {
+    return this.playerReadyManager.readyPlayer(id, dto, req)
   }
 }
