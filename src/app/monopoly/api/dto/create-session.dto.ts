@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsString, IsUUID } from 'class-validator'
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Min,
+} from 'class-validator'
 
 export class CreateSessionDto {
   @IsUUID()
@@ -7,4 +14,9 @@ export class CreateSessionDto {
   @IsString()
   @IsNotEmpty()
   name!: string
+
+  @IsOptional()
+  @IsInt()
+  @Min(2)
+  playersCount?: number
 }

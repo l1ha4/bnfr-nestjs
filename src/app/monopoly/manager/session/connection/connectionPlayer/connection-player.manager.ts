@@ -28,7 +28,7 @@ export class ConnectionPlayerManager {
           where: { id },
           select: {
             id: true,
-            maxPlayers: true,
+            playersCount: true,
             templateId: true,
           },
         }),
@@ -56,7 +56,7 @@ export class ConnectionPlayerManager {
       throw new ConflictException('Пользователь уже участвует в сессии')
     }
 
-    if (sessionPlayersCount >= session.maxPlayers) {
+    if (sessionPlayersCount >= session.playersCount) {
       throw new ConflictException('Сессия уже полна')
     }
 
@@ -65,6 +65,7 @@ export class ConnectionPlayerManager {
         sessionId: id,
         userId,
         money: template.startMoney,
+        orderIndex: sessionPlayersCount,
       },
     })
 

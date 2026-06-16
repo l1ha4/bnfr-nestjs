@@ -5,6 +5,7 @@ import { UpdatePlayerReadyDto } from '../../../../api/dto/update-player-ready.dt
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
 import { ColorManager } from '../color/color.manager'
 import { FigurinesManager } from '../figurines/figurines.manager'
+import { updateSessionStatusWhenAllReady } from '../../core/readySession/update-session-status-on-ready'
 
 @Injectable()
 export class PlayerReadyManager {
@@ -83,6 +84,7 @@ export class PlayerReadyManager {
 
     return {
       ...session,
+      minPlayers: session.template.minPlayers,
       players: session.players.map((player) => ({
         ...player,
         displayName: usersMap.get(player.userId)?.displayName ?? 'Игрок',
@@ -136,8 +138,19 @@ export class PlayerReadyManager {
 
     const session = await this.fetchSessionSnapshot(id)
 
-    this.monopolyGateway.sendStateUpdated(id, session)
+    const { session: actualSession, statusChanged } =
+      await updateSessionStatusWhenAllReady({
+        sessionId: id,
+        session,
+        prisma: this.prisma,
+        monopolyGateway: this.monopolyGateway,
+        fetchSessionSnapshot: this.fetchSessionSnapshot.bind(this),
+      })
 
-    return session
+    if (!statusChanged) {
+      this.monopolyGateway.sendStateUpdated(id, actualSession)
+    }
+
+    return actualSession
   }
 }

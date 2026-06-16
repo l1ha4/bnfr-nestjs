@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common'
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common'
 import type { Request } from 'express'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { CreateSessionDto } from '../../../api/dto/create-session.dto'
@@ -34,11 +38,21 @@ export class CreateSessionManager {
       },
     })
 
+    const playersCount = createSessionDto.playersCount ?? template.maxPlayers
+
+    if (
+      playersCount < template.minPlayers ||
+      playersCount > template.maxPlayers
+    ) {
+      throw new BadRequestException(
+        `Количество игроков должно быть в диапазоне ${template.minPlayers}-${template.maxPlayers}`,
+      )
+    }
+
     const session = await this.prisma.monopolyGameSession.create({
       data: {
         name: createSessionDto.name,
-        minPlayers: template.minPlayers,
-        maxPlayers: template.maxPlayers,
+        playersCount,
         template: {
           connect: { id: createSessionDto.templateId },
         },
@@ -49,8 +63,7 @@ export class CreateSessionManager {
     this.monopolyGateway.sendSessionCreated({
       id: session.id,
       name: session.name,
-      minPlayers: session.minPlayers,
-      maxPlayers: session.maxPlayers,
+      playersCount: session.playersCount,
       templateId: session.templateId,
     })
 

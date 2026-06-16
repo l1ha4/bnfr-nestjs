@@ -7,20 +7,33 @@ export class ListSessionManager {
   public constructor(private readonly prisma: PrismaService) {}
 
   public getListSessions() {
-    return this.prisma.monopolyGameSession.findMany({
-      where: {
-        status: MonopolyGameSessionStatus.WAITING,
-      },
-      select: {
-        id: true,
-        name: true,
-        createdById: true,
-        minPlayers: true,
-        maxPlayers: true,
-        templateId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    })
+    return this.prisma.monopolyGameSession
+      .findMany({
+        where: {
+          status: MonopolyGameSessionStatus.WAITING,
+        },
+        select: {
+          id: true,
+          name: true,
+          createdById: true,
+          playersCount: true,
+          templateId: true,
+          template: {
+            select: {
+              minPlayers: true,
+              maxPlayers: true,
+            },
+          },
+          createdAt: true,
+          updatedAt: true,
+        },
+      })
+      .then((sessions) =>
+        sessions.map(({ template, ...session }) => ({
+          ...session,
+          minPlayers: template.minPlayers,
+          maxPlayers: template.maxPlayers,
+        })),
+      )
   }
 }
