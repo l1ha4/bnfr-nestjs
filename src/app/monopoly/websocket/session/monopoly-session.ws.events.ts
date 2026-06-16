@@ -3,6 +3,7 @@ export enum MonopolySessionWsEvent {
   UNSUBSCRIBE = 'session:unsubscribe',
 
   PLAYER_JOINED = 'session:player-joined',
+  PLAYER_READY = 'session:player-ready',
   PLAYER_LEFT = 'session:player-left',
   STATE_UPDATED = 'session:state-updated',
 }
