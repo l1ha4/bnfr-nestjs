@@ -5,6 +5,7 @@ import {
   MonopolyCellElementType,
   MonopolyCellPosition,
   MonopolyCellType,
+  MonopolyStreetRentGrowthMode,
 } from '@prisma/client'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { CreateMonopolyFormDto } from '../dto/create-monopoly-form.dto'
@@ -15,11 +16,18 @@ type MonopolyFormCellInput = {
   typeElement: string
   type?: string
   price?: number | null
+  colorOwner?: string
+  showPurchasePreview?: boolean
+  streetEconomy?: Prisma.InputJsonValue
 }
 
 type MonopolyStreetCollectionInput = {
   name: string
   streetIds: string[]
+  rentGrowthMode?: 'byCollectionSize' | 'byUpgrades' | string
+  streetsCount?: number | null
+  upgradesEnabled?: boolean | null
+  maxUpgradeLevel?: number | null
 }
 
 type MonopolyCardActionInput = {
@@ -69,12 +77,19 @@ export class MonopolyTemplateManagerService {
 
           type: this.resolveCellType(cell),
           price: cell.price ?? null,
+          colorOwner: cell.colorOwner ?? null,
+          showPurchasePreview: cell.showPurchasePreview ?? false,
+          streetEconomy: cell.streetEconomy,
         })),
       },
 
       streetCollections: {
         create: collectionsStreet.map((collection) => ({
           name: collection.name,
+          rentGrowthMode: this.resolveRentGrowthMode(collection.rentGrowthMode),
+          streetsCount: collection.streetsCount ?? null,
+          upgradesEnabled: collection.upgradesEnabled ?? null,
+          maxUpgradeLevel: collection.maxUpgradeLevel ?? null,
         })),
       },
 
@@ -249,6 +264,20 @@ export class MonopolyTemplateManagerService {
         return MonopolyActionType.CUSTOM
       default:
         throw new Error(`Неизвестный тип действия карточки: ${actionType}`)
+    }
+  }
+
+  private resolveRentGrowthMode(
+    rentGrowthMode?: string,
+  ): MonopolyStreetRentGrowthMode {
+    switch (rentGrowthMode) {
+      case 'byUpgrades':
+      case 'BY_UPGRADES':
+        return MonopolyStreetRentGrowthMode.BY_UPGRADES
+      case 'byCollectionSize':
+      case 'BY_COLLECTION_SIZE':
+      default:
+        return MonopolyStreetRentGrowthMode.BY_COLLECTION_SIZE
     }
   }
 }

@@ -42,6 +42,11 @@ enum MonopolyActionType {
   CUSTOM
 }
 
+enum MonopolyStreetRentGrowthMode {
+  BY_COLLECTION_SIZE
+  BY_UPGRADES
+}
+
 model MonopolyGameTemplate {
   id          String  @id @default(uuid())
   name        String
@@ -81,8 +86,11 @@ model MonopolyCellTemplate {
   position    MonopolyCellPosition
   typeElement MonopolyCellElementType @map("type_element")
 
-  type  MonopolyCellType?
-  price Int?
+  type                MonopolyCellType?
+  price               Int?
+  colorOwner          String?           @map("color_owner")
+  showPurchasePreview Boolean           @default(false) @map("show_purchase_preview")
+  streetEconomy       Json?             @map("street_economy")
 
   collectionId String?                           @map("collection_id")
   collection   MonopolyStreetCollectionTemplate? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
@@ -105,6 +113,11 @@ model MonopolyStreetCollectionTemplate {
   template   MonopolyGameTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   name String
+
+  rentGrowthMode  MonopolyStreetRentGrowthMode @default(BY_COLLECTION_SIZE) @map("rent_growth_mode")
+  streetsCount    Int?                         @map("streets_count")
+  upgradesEnabled Boolean?                     @map("upgrades_enabled")
+  maxUpgradeLevel Int?                         @map("max_upgrade_level")
 
   cells MonopolyCellTemplate[]
 
@@ -250,7 +263,7 @@ model MonopolyGameSessionProperty {
   player  MonopolyGameSessionPlayer? @relation(fields: [sessionPlayerId], references: [id], onDelete: SetNull)
 
   cellTemplateId String @map("cell_template_id")
-  
+
   ownerUserId String? @map("owner_user_id")
 
   indexCell Int @map("index_cell")
