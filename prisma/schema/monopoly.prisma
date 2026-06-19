@@ -187,8 +187,8 @@ model MonopolyGameSession {
 
   playersCount Int @map("players_count")
 
-  currentTurnPlayerId String?          @map("current_turn_player_id")
-  currentTypeTurn     MonopolyTurnType @default(NULL) @map("current_type_turn")
+  currentMovePlayerId String?          @map("current_turn_player_id")
+  currentTypeMove     MonopolyMoveType @default(NULL) @map("current_type_turn")
   currentRound        Int              @default(1)
 
   createdById String @map("created_by_id")
@@ -198,12 +198,13 @@ model MonopolyGameSession {
   startedAt  DateTime? @map("started_at")
   finishedAt DateTime? @map("finished_at")
 
-  players MonopolyGameSessionPlayer[]
+  players    MonopolyGameSessionPlayer[]
+  properties MonopolyGameSessionProperty[]
 
   @@map("monopoly_game_sessions")
 }
 
-enum MonopolyTurnType {
+enum MonopolyMoveType {
   NULL
   WAIT
   DICE_ROLL_ON_THE_MOVE
@@ -245,9 +246,14 @@ model MonopolyGameSessionProperty {
   sessionId       String  @map("session_id")
   sessionPlayerId String? @map("session_player_id")
 
-  player MonopolyGameSessionPlayer? @relation(fields: [sessionPlayerId], references: [id], onDelete: SetNull)
+  session MonopolyGameSession        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  player  MonopolyGameSessionPlayer? @relation(fields: [sessionPlayerId], references: [id], onDelete: SetNull)
 
   cellTemplateId String @map("cell_template_id")
+  
+  ownerUserId String? @map("owner_user_id")
+
+  indexCell Int @map("index_cell")
 
   level Int @default(0)
 

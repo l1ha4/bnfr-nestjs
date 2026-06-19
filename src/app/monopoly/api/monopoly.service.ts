@@ -18,6 +18,10 @@ export class MonopolyService {
     return this.listSessionManager.getListSessions()
   }
 
+  getCurrentSession(req: Request) {
+    return this.sessionManager.getCurrentSession(req)
+  }
+
   findAllPubicTemplate() {
     return this.templateManager.findAllPubicTemplate()
   }
@@ -56,5 +60,17 @@ export class MonopolyService {
 
   async readyPlayer(id: string, dto: UpdatePlayerReadyDto, req: Request) {
     return this.sessionManager.readyPlayer(id, dto, req)
+  }
+
+  async rollTurn(id: string, req: Request) {
+    return this.sessionManager.rollTurn(id, req)
+  }
+
+  async buyStreet(id: string, cellId: string, req: Request) {
+    return this.sessionManager.buyStreet(id, cellId, req)
+  }
+
+  async resetSession(id: string) {
+    return this.sessionManager.resetSession(id)
   }
 }

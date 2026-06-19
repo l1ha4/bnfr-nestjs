@@ -38,6 +38,11 @@ export class PlayerReadyManager {
             },
           },
         },
+        properties: {
+          orderBy: {
+            createdAt: 'asc',
+          },
+        },
         players: {
           orderBy: {
             joinedAt: 'asc',
@@ -84,6 +89,7 @@ export class PlayerReadyManager {
 
     return {
       ...session,
+      property: session.properties,
       minPlayers: session.template.minPlayers,
       players: session.players.map((player) => ({
         ...player,

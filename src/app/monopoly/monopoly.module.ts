@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common'
 import { MonopolyService } from './api/monopoly.service'
-import { MonopolyController } from './api/monopoly.controller'
+import { ListSessionsController } from './api/controllers/listSessions/list-sessions.controller'
+import { CreateSessionController } from './api/controllers/createSession/create-session.controller'
+import { SessionController } from './api/controllers/session/session.controller'
+import { GameActionsController } from './api/controllers/gameActions/game-actions.controller'
 import { MonopolyWebsocketGateway } from './websocket/monopoly-websocket.gateway'
 import { ListSessionsWsService } from './websocket/listSessions/monopoly-listSessions.gateway'
 import { SessionWsService } from './websocket/session/session.ws.service'
@@ -12,9 +15,16 @@ import { FigurinesManager } from './manager/session/connection/figurines/figurin
 import { ConnectionPlayerManager } from './manager/session/connection/connectionPlayer/connection-player.manager'
 import { PlayerReadyManager } from './manager/session/connection/playerReady/player-ready.manager'
 import { CreateSessionManager } from './manager/session/createSession/create-session.manager'
+import { ResetSessionManager } from './manager/session/core/resetSession/reset-session.manager'
+import { TypePurchaseSessionMonopolyManager } from './manager/session/core/eventCellSession/typeStreet/typePurchase/type-purchase-session.monopoly.manager'
 
 @Module({
-  controllers: [MonopolyController],
+  controllers: [
+    ListSessionsController,
+    CreateSessionController,
+    SessionController,
+    GameActionsController,
+  ],
   providers: [
     MonopolyService,
     MonopolyWebsocketGateway,
@@ -28,6 +38,8 @@ import { CreateSessionManager } from './manager/session/createSession/create-ses
     ConnectionPlayerManager,
     PlayerReadyManager,
     CreateSessionManager,
+    ResetSessionManager,
+    TypePurchaseSessionMonopolyManager,
   ],
 })
 export class MonopolyModule {}

@@ -1,4 +1,4 @@
-import { MonopolyGameSessionStatus, MonopolyTurnType } from '@prisma/client'
+import { MonopolyGameSessionStatus, MonopolyMoveType } from '@prisma/client'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
 
@@ -75,6 +75,7 @@ export const updateSessionStatusWhenAllReady = async <
     },
     select: {
       id: true,
+      userId: true,
     },
     orderBy: {
       joinedAt: 'asc',
@@ -112,8 +113,8 @@ export const updateSessionStatusWhenAllReady = async <
       data: {
         status: MonopolyGameSessionStatus.ACTIVE,
         startedAt,
-        currentTurnPlayerId: playersInRandomOrder[0].id,
-        currentTypeTurn: MonopolyTurnType.DICE_ROLL_ON_THE_MOVE,
+        currentMovePlayerId: playersInRandomOrder[0].userId,
+        currentTypeMove: MonopolyMoveType.DICE_ROLL_ON_THE_MOVE,
       },
     })
   })

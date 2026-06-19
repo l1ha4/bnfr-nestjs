@@ -67,6 +67,10 @@ export class MonopolyWebsocketGateway {
     this.sessionWsService.sendPlayerJoined(this.server, sessionId, payload)
   }
 
+  public sendPlayerLeft(sessionId: string, payload: unknown) {
+    this.sessionWsService.sendPlayerLeft(this.server, sessionId, payload)
+  }
+
   public sendStateUpdated(sessionId: string, payload: unknown) {
     this.sessionWsService.sendStateUpdated(this.server, sessionId, payload)
   }
