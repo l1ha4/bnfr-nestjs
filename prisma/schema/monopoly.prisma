@@ -1,3 +1,5 @@
+// * TEMPLATE
+
 enum MonopolyCellPosition {
   TOP
   RIGHT
@@ -40,6 +42,11 @@ enum MonopolyActionType {
   CUSTOM
 }
 
+enum MonopolyStreetRentGrowthMode {
+  BY_COLLECTION_SIZE
+  BY_UPGRADES
+}
+
 model MonopolyGameTemplate {
   id          String  @id @default(uuid())
   name        String
@@ -57,8 +64,11 @@ model MonopolyGameTemplate {
   streetCollections MonopolyStreetCollectionTemplate[]
   cardGroups        MonopolyCardGroupTemplate[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  isPublic Boolean @default(false)
+
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @default(now()) @updatedAt
+  monopolyGameSessions MonopolyGameSession[]
 
   @@map("monopoly_game_templates")
 }
@@ -76,8 +86,11 @@ model MonopolyCellTemplate {
   position    MonopolyCellPosition
   typeElement MonopolyCellElementType @map("type_element")
 
-  type  MonopolyCellType?
-  price Int?
+  type                MonopolyCellType?
+  price               Int?
+  colorOwner          String?                        @map("color_owner")
+  showPurchasePreview Boolean                        @default(false) @map("show_purchase_preview")
+  streetEconomy       MonopolyStreetEconomyTemplate?
 
   collectionId String?                           @map("collection_id")
   collection   MonopolyStreetCollectionTemplate? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
@@ -93,6 +106,33 @@ model MonopolyCellTemplate {
   @@map("monopoly_cell_templates")
 }
 
+model MonopolyStreetEconomyTemplate {
+  id String @id @default(uuid())
+
+  cellId String               @unique @map("cell_id")
+  cell   MonopolyCellTemplate @relation(fields: [cellId], references: [id], onDelete: Cascade)
+
+  description String
+
+  purchasePricesByOwnedCount Json @map("purchase_prices_by_owned_count")
+  rentByOwnedCount           Json @map("rent_by_owned_count")
+
+  baseRentWithoutUpgrades Int? @map("base_rent_without_upgrades")
+  upgrades                Json
+
+  salePriceWithoutUpgrades Int? @map("sale_price_without_upgrades")
+  salePriceByUpgradeCount  Json @map("sale_price_by_upgrade_count")
+
+  mortgagePrice          Int?    @map("mortgage_price")
+  mortgageBuyoutPrice    Int?    @map("mortgage_buyout_price")
+  allowRentWhenMortgaged Boolean @default(false) @map("allow_rent_when_mortgaged")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("monopoly_street_economy_templates")
+}
+
 model MonopolyStreetCollectionTemplate {
   id String @id @default(uuid())
 
@@ -100,6 +140,11 @@ model MonopolyStreetCollectionTemplate {
   template   MonopolyGameTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
   name String
+
+  rentGrowthMode  MonopolyStreetRentGrowthMode @default(BY_COLLECTION_SIZE) @map("rent_growth_mode")
+  streetsCount    Int?                         @map("streets_count")
+  upgradesEnabled Boolean?                     @map("upgrades_enabled")
+  maxUpgradeLevel Int?                         @map("max_upgrade_level")
 
   cells MonopolyCellTemplate[]
 
@@ -166,4 +211,257 @@ model MonopolyCardActionTemplate {
   @@index([cardId])
   @@index([targetCellId])
   @@map("monopoly_card_action_templates")
+}
+
+// * GAME SESSION
+
+model MonopolyGameSession {
+  id String @id @default(uuid())
+
+  templateId String               @map("template_id")
+  template   MonopolyGameTemplate @relation(fields: [templateId], references: [id])
+
+  status MonopolyGameSessionStatus @default(WAITING)
+
+  name String?
+
+  playersCount Int @map("players_count")
+
+  currentMovePlayerId String?          @map("current_turn_player_id")
+  currentTypeMove     MonopolyMoveType @default(NULL) @map("current_type_turn")
+  currentRound        Int              @default(1)
+
+  createdById String @map("created_by_id")
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  startedAt  DateTime? @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+
+  players      MonopolyGameSessionPlayer[]
+  properties   MonopolyGameSessionProperty[]
+  chatMessages MonopolyGameSessionChatMessage[]
+  auctions     MonopolyGameSessionAuction[]
+
+  @@map("monopoly_game_sessions")
+}
+
+enum MonopolyMoveType {
+  NULL
+  WAIT
+  DICE_ROLL_ON_THE_MOVE
+  DECISION_TO_BUY_A_STREET
+  EXPECTED_RENT_PAYMENT_RESPONSE
+  AUCTION
+  CARD_ACTION
+}
+
+model MonopolyGameSessionPlayer {
+  id String @id @default(uuid())
+
+  sessionId String              @map("session_id")
+  session   MonopolyGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  userId String @map("user_id")
+
+  money      Int
+  position   Int @default(0)
+  orderIndex Int @map("order_index")
+
+  colorId    String? @map("color_id")
+  figurineId String? @map("figurine_id")
+
+  isBankrupt Boolean @default(false) @map("is_bankrupt")
+  isReady    Boolean @default(false) @map("is_ready")
+
+  joinedAt  DateTime @default(now()) @map("joined_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  properties          MonopolyGameSessionProperty[]
+  auctionTurns        MonopolyGameSessionAuction[]       @relation("MonopolyAuctionCurrentPlayer")
+  auctionParticipants MonopolyGameSessionAuctionPlayer[]
+  auctionBids         MonopolyGameSessionAuctionBid[]
+
+  @@unique([sessionId, userId])
+  @@map("monopoly_game_session_players")
+}
+
+enum MonopolyGameSessionAuctionStatus {
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+enum MonopolyGameSessionAuctionMode {
+  DIRECT_OFFER
+  COMPETITIVE
+}
+
+model MonopolyGameSessionAuction {
+  id String @id @default(uuid())
+
+  sessionId String              @map("session_id")
+  session   MonopolyGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  status MonopolyGameSessionAuctionStatus @default(ACTIVE)
+  mode   MonopolyGameSessionAuctionMode   @default(COMPETITIVE)
+
+  initiatorUserId      String @map("initiator_user_id")
+  streetCellTemplateId String @map("street_cell_template_id")
+  streetInitialPrice   Int    @map("street_initial_price")
+
+  currentAuctionPlayerId String?                    @map("current_auction_player_id")
+  currentAuctionPlayer   MonopolyGameSessionPlayer? @relation("MonopolyAuctionCurrentPlayer", fields: [currentAuctionPlayerId], references: [id], onDelete: SetNull)
+
+  lastBidId String?                        @unique @map("last_bid_id")
+  lastBid   MonopolyGameSessionAuctionBid? @relation("MonopolyAuctionLastBid", fields: [lastBidId], references: [id], onDelete: SetNull)
+
+  players MonopolyGameSessionAuctionPlayer[]
+  bids    MonopolyGameSessionAuctionBid[]    @relation("MonopolyAuctionBids")
+
+  startedAt     DateTime  @default(now()) @map("started_at")
+  turnExpiresAt DateTime? @map("turn_expires_at")
+  endedAt       DateTime? @map("ended_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([sessionId, status])
+  @@map("monopoly_game_session_auctions")
+}
+
+model MonopolyGameSessionAuctionPlayer {
+  id String @id @default(uuid())
+
+  auctionId String                     @map("auction_id")
+  auction   MonopolyGameSessionAuction @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+
+  sessionPlayerId String                    @map("session_player_id")
+  sessionPlayer   MonopolyGameSessionPlayer @relation(fields: [sessionPlayerId], references: [id], onDelete: Cascade)
+
+  continuesAuction Boolean   @default(true) @map("continues_auction")
+  queueIndex       Int       @map("queue_index")
+  declinedAt       DateTime? @map("declined_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([auctionId, sessionPlayerId])
+  @@index([auctionId, queueIndex])
+  @@map("monopoly_game_session_auction_players")
+}
+
+model MonopolyGameSessionAuctionBid {
+  id String @id @default(uuid())
+
+  auctionId String                     @map("auction_id")
+  auction   MonopolyGameSessionAuction @relation("MonopolyAuctionBids", fields: [auctionId], references: [id], onDelete: Cascade)
+
+  sessionPlayerId String                    @map("session_player_id")
+  sessionPlayer   MonopolyGameSessionPlayer @relation(fields: [sessionPlayerId], references: [id], onDelete: Cascade)
+
+  price Int
+
+  isLastBid Boolean @default(true) @map("is_last_bid")
+  isWinner  Boolean @default(false) @map("is_winner")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  auctionAsLastBid MonopolyGameSessionAuction? @relation("MonopolyAuctionLastBid")
+
+  @@index([auctionId, createdAt])
+  @@map("monopoly_game_session_auction_bids")
+}
+
+model MonopolyGameSessionProperty {
+  id String @id @default(uuid())
+
+  sessionId       String  @map("session_id")
+  sessionPlayerId String? @map("session_player_id")
+
+  session MonopolyGameSession        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  player  MonopolyGameSessionPlayer? @relation(fields: [sessionPlayerId], references: [id], onDelete: SetNull)
+
+  cellTemplateId String @map("cell_template_id")
+
+  ownerUserId String? @map("owner_user_id")
+
+  indexCell Int @map("index_cell")
+
+  level Int @default(0)
+
+  isMortgaged Boolean @default(false) @map("is_mortgaged")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([sessionId, cellTemplateId])
+  @@map("monopoly_game_session_properties")
+}
+
+enum MonopolyGameSessionStatus {
+  WAITING
+  ACTIVE
+  PAUSED
+  FINISHED
+  CANCELLED
+}
+
+model MonopolyGameSessionChatMessage {
+  id String @id @default(uuid())
+
+  sessionId String              @map("session_id")
+  session   MonopolyGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  userId String? @map("user_id")
+
+  isSystemMessage Boolean @default(false) @map("is_system_message")
+
+  content String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([sessionId])
+  @@map("monopoly_game_session_chat_messages")
+}
+
+// * FIGURINES AND COLORS
+
+model MonopolyFigurine {
+  id String @id @default(uuid())
+
+  name String
+  url  String
+
+  collectionId String?                     @map("collection_id")
+  collection   MonopolyFigurineCollection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("monopoly_figurines")
+}
+
+model MonopolyFigurineCollection {
+  id String @id @default(uuid())
+
+  name String
+
+  figurines MonopolyFigurine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("monopoly_figurine_collections")
+}
+
+model MonopolyPlayerColor {
+  id String @id @default(uuid())
+
+  name    String
+  hexCode String @map("hex_code")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("monopoly_player_colors")
 }

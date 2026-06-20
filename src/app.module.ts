@@ -10,6 +10,7 @@ import { IS_DEV_ENV } from './common/utils/is-dev.utils'
 import { AuthModule } from './app/auth/auth.module'
 import { UserModule } from './app/user/user.module'
 import { AdminRouteGuard } from './app/admin/guards/admin-route.guard'
+import { MonopolyModule } from './app/monopoly/monopoly.module'
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AdminRouteGuard } from './app/admin/guards/admin-route.guard'
     UserModule,
     AdminModule,
     AuthAdminModule,
+    MonopolyModule,
   ],
   controllers: [],
   providers: [
