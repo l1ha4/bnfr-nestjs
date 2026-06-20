@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import type { Request } from 'express'
+import { MonopolyGameSessionAuctionStatus } from '@prisma/client'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { UpdatePlayerReadyDto } from '../../../../api/dto/update-player-ready.dto'
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
@@ -49,6 +50,39 @@ export class PlayerReadyManager {
             joinedAt: 'asc',
           },
         },
+        auctions: {
+          where: {
+            status: MonopolyGameSessionAuctionStatus.ACTIVE,
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+          include: {
+            players: {
+              orderBy: {
+                queueIndex: 'asc',
+              },
+              include: {
+                sessionPlayer: true,
+              },
+            },
+            lastBid: {
+              include: {
+                sessionPlayer: true,
+              },
+            },
+            bids: {
+              orderBy: {
+                createdAt: 'desc',
+              },
+              take: 4,
+              include: {
+                sessionPlayer: true,
+              },
+            },
+          },
+        },
       },
     })
 
@@ -88,10 +122,80 @@ export class PlayerReadyManager {
       figurines.map((figurine) => [figurine.id, figurine]),
     )
 
+    const activeAuction = session.auctions[0] ?? null
+    const streetName = activeAuction
+      ? (session.template.cells.find(
+          (cell) => cell.id === activeAuction.streetCellTemplateId,
+        )?.name ?? 'Улица')
+      : null
+
+    const normalizedActiveAuction = activeAuction
+      ? {
+          id: activeAuction.id,
+          mode: activeAuction.mode,
+          status: activeAuction.status,
+          streetCellTemplateId: activeAuction.streetCellTemplateId,
+          streetName,
+          streetInitialPrice: activeAuction.streetInitialPrice,
+          initiatorUserId: activeAuction.initiatorUserId,
+          currentAuctionPlayerUserId:
+            activeAuction.currentAuctionPlayerId
+              ? (activeAuction.players.find(
+                  (player) =>
+                    player.sessionPlayerId === activeAuction.currentAuctionPlayerId,
+                )?.sessionPlayer.userId ?? null)
+              : null,
+          turnExpiresAt: activeAuction.turnExpiresAt,
+          lastBid: activeAuction.lastBid
+            ? {
+                id: activeAuction.lastBid.id,
+                userId: activeAuction.lastBid.sessionPlayer.userId,
+                userName:
+                  usersMap.get(activeAuction.lastBid.sessionPlayer.userId)
+                    ?.displayName ?? 'Игрок',
+                price: activeAuction.lastBid.price,
+                isLastBid: activeAuction.lastBid.isLastBid,
+                isWinner: activeAuction.lastBid.isWinner,
+                createdAt: activeAuction.lastBid.createdAt,
+              }
+            : null,
+          bids: activeAuction.bids.map((bid) => ({
+            id: bid.id,
+            userId: bid.sessionPlayer.userId,
+            userName:
+              usersMap.get(bid.sessionPlayer.userId)?.displayName ?? 'Игрок',
+            price: bid.price,
+            isLastBid: bid.isLastBid,
+            isWinner: bid.isWinner,
+            createdAt: bid.createdAt,
+          })),
+          players: activeAuction.players.map((auctionPlayer) => ({
+            id: auctionPlayer.id,
+            sessionPlayerId: auctionPlayer.sessionPlayerId,
+            userId: auctionPlayer.sessionPlayer.userId,
+            userName:
+              usersMap.get(auctionPlayer.sessionPlayer.userId)?.displayName ??
+              'Игрок',
+            color:
+              colorsMap.get(auctionPlayer.sessionPlayer.colorId ?? '')?.hexCode ??
+              '#7D8590',
+            queueIndex: auctionPlayer.queueIndex,
+            continuesAuction: auctionPlayer.continuesAuction,
+            declinedAt: auctionPlayer.declinedAt,
+            isCurrentTurn:
+              activeAuction.currentAuctionPlayerId ===
+              auctionPlayer.sessionPlayerId,
+          })),
+          minBidStep: 50,
+        }
+      : null
+
     return {
       ...session,
       property: session.properties,
       minPlayers: session.template.minPlayers,
+      requiredPlayers: session.playersCount,
+      activeAuction: normalizedActiveAuction,
       players: session.players.map((player) => ({
         ...player,
         displayName: usersMap.get(player.userId)?.displayName ?? 'Игрок',

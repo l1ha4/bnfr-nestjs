@@ -214,6 +214,7 @@ model MonopolyGameSession {
   players      MonopolyGameSessionPlayer[]
   properties   MonopolyGameSessionProperty[]
   chatMessages MonopolyGameSessionChatMessage[]
+  auctions     MonopolyGameSessionAuction[]
 
   @@map("monopoly_game_sessions")
 }
@@ -223,6 +224,7 @@ enum MonopolyMoveType {
   WAIT
   DICE_ROLL_ON_THE_MOVE
   DECISION_TO_BUY_A_STREET
+  EXPECTED_RENT_PAYMENT_RESPONSE
   AUCTION
   CARD_ACTION
 }
@@ -248,10 +250,99 @@ model MonopolyGameSessionPlayer {
   joinedAt  DateTime @default(now()) @map("joined_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  properties MonopolyGameSessionProperty[]
+  properties          MonopolyGameSessionProperty[]
+  auctionTurns        MonopolyGameSessionAuction[]       @relation("MonopolyAuctionCurrentPlayer")
+  auctionParticipants MonopolyGameSessionAuctionPlayer[]
+  auctionBids         MonopolyGameSessionAuctionBid[]
 
   @@unique([sessionId, userId])
   @@map("monopoly_game_session_players")
+}
+
+enum MonopolyGameSessionAuctionStatus {
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+enum MonopolyGameSessionAuctionMode {
+  DIRECT_OFFER
+  COMPETITIVE
+}
+
+model MonopolyGameSessionAuction {
+  id String @id @default(uuid())
+
+  sessionId String              @map("session_id")
+  session   MonopolyGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  status MonopolyGameSessionAuctionStatus @default(ACTIVE)
+  mode   MonopolyGameSessionAuctionMode   @default(COMPETITIVE)
+
+  initiatorUserId      String @map("initiator_user_id")
+  streetCellTemplateId String @map("street_cell_template_id")
+  streetInitialPrice   Int    @map("street_initial_price")
+
+  currentAuctionPlayerId String?                    @map("current_auction_player_id")
+  currentAuctionPlayer   MonopolyGameSessionPlayer? @relation("MonopolyAuctionCurrentPlayer", fields: [currentAuctionPlayerId], references: [id], onDelete: SetNull)
+
+  lastBidId String?                        @unique @map("last_bid_id")
+  lastBid   MonopolyGameSessionAuctionBid? @relation("MonopolyAuctionLastBid", fields: [lastBidId], references: [id], onDelete: SetNull)
+
+  players MonopolyGameSessionAuctionPlayer[]
+  bids    MonopolyGameSessionAuctionBid[]    @relation("MonopolyAuctionBids")
+
+  startedAt     DateTime  @default(now()) @map("started_at")
+  turnExpiresAt DateTime? @map("turn_expires_at")
+  endedAt       DateTime? @map("ended_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([sessionId, status])
+  @@map("monopoly_game_session_auctions")
+}
+
+model MonopolyGameSessionAuctionPlayer {
+  id String @id @default(uuid())
+
+  auctionId String                     @map("auction_id")
+  auction   MonopolyGameSessionAuction @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+
+  sessionPlayerId String                    @map("session_player_id")
+  sessionPlayer   MonopolyGameSessionPlayer @relation(fields: [sessionPlayerId], references: [id], onDelete: Cascade)
+
+  continuesAuction Boolean   @default(true) @map("continues_auction")
+  queueIndex       Int       @map("queue_index")
+  declinedAt       DateTime? @map("declined_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([auctionId, sessionPlayerId])
+  @@index([auctionId, queueIndex])
+  @@map("monopoly_game_session_auction_players")
+}
+
+model MonopolyGameSessionAuctionBid {
+  id String @id @default(uuid())
+
+  auctionId String                     @map("auction_id")
+  auction   MonopolyGameSessionAuction @relation("MonopolyAuctionBids", fields: [auctionId], references: [id], onDelete: Cascade)
+
+  sessionPlayerId String                    @map("session_player_id")
+  sessionPlayer   MonopolyGameSessionPlayer @relation(fields: [sessionPlayerId], references: [id], onDelete: Cascade)
+
+  price Int
+
+  isLastBid Boolean @default(true) @map("is_last_bid")
+  isWinner  Boolean @default(false) @map("is_winner")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  auctionAsLastBid MonopolyGameSessionAuction? @relation("MonopolyAuctionLastBid")
+
+  @@index([auctionId, createdAt])
+  @@map("monopoly_game_session_auction_bids")
 }
 
 model MonopolyGameSessionProperty {

@@ -17,6 +17,9 @@ import { CreateSessionManager } from './createSession/create-session.manager'
 import { ResetSessionManager } from './core/resetSession/reset-session.manager'
 import { rollTurnSession } from './core/rollTurnSession/rollTurnSessionMonopoly.manager'
 import { TypePurchaseSessionMonopolyManager } from './core/eventCellSession/typeStreet/typePurchase/type-purchase-session.monopoly.manager'
+import { TypeAuctionSessionMonopolyManager } from './core/eventCellSession/typeStreet/typeAuction/type-auction-session.monopoly.manager'
+import { AuctionSessionMonopolyManager } from './core/auction/auction-session.monopoly.manager'
+import { TypeRentSessionMonopolyManager } from './core/eventCellSession/typeStreet/typeRent/type-rent-session.monopoly.manager'
 
 @Injectable()
 export class SessionManager {
@@ -30,6 +33,9 @@ export class SessionManager {
     private readonly figurinesManager: FigurinesManager,
     private readonly resetSessionManager: ResetSessionManager,
     private readonly typePurchaseSessionMonopolyManager: TypePurchaseSessionMonopolyManager,
+    private readonly typeRentSessionMonopolyManager: TypeRentSessionMonopolyManager,
+    private readonly typeAuctionSessionMonopolyManager: TypeAuctionSessionMonopolyManager,
+    private readonly auctionSessionMonopolyManager: AuctionSessionMonopolyManager,
   ) {}
 
   public async findSessionById(id: string) {
@@ -321,6 +327,25 @@ export class SessionManager {
       throw new BadRequestException('Покупка улицы сейчас недоступна')
     }
 
+    const activeAuction =
+      await this.auctionSessionMonopolyManager.getSessionActiveAuction(
+        id,
+        this.prisma,
+      )
+
+    if (activeAuction?.mode === 'DIRECT_OFFER') {
+      return this.auctionSessionMonopolyManager.buyDirectOfferStreet({
+        sessionId: id,
+        auctionId: activeAuction.id,
+        userId,
+        prisma: this.prisma,
+        monopolyGateway: this.monopolyGateway,
+        fetchSessionSnapshot: this.playerReadyManager.findSessionById.bind(
+          this.playerReadyManager,
+        ),
+      })
+    }
+
     const cellTemplate =
       await this.prisma.monopolyCellTemplate.findUniqueOrThrow({
         where: { id: cellId },
@@ -331,6 +356,104 @@ export class SessionManager {
       sessionId: id,
       session,
       landedCell: cellTemplate,
+      prisma: this.prisma,
+      monopolyGateway: this.monopolyGateway,
+      fetchSessionSnapshot: this.playerReadyManager.findSessionById.bind(
+        this.playerReadyManager,
+      ),
+    })
+  }
+
+  public async refusePurchase(id: string, req: Request) {
+    const userId = req.session.userId
+
+    const session = await this.playerReadyManager.findSessionById(id)
+
+    if (session.currentMovePlayerId !== userId) {
+      throw new BadRequestException('Сейчас не ваш ход')
+    }
+
+    return this.typeAuctionSessionMonopolyManager.refusePurchase({
+      sessionId: id,
+      session,
+      prisma: this.prisma,
+      monopolyGateway: this.monopolyGateway,
+      fetchSessionSnapshot: this.playerReadyManager.findSessionById.bind(
+        this.playerReadyManager,
+      ),
+      auctionSessionMonopolyManager: this.auctionSessionMonopolyManager,
+    })
+  }
+
+  public async payRent(id: string, req: Request) {
+    const userId = req.session.userId
+
+    const session = await this.playerReadyManager.findSessionById(id)
+
+    if (session.currentMovePlayerId !== userId) {
+      throw new BadRequestException('Сейчас не ваш ход')
+    }
+
+    if (
+      session.currentTypeMove !== MonopolyMoveType.EXPECTED_RENT_PAYMENT_RESPONSE
+    ) {
+      throw new BadRequestException('Оплата аренды сейчас недоступна')
+    }
+
+    return this.typeRentSessionMonopolyManager.payRent({
+      sessionId: id,
+      session,
+      prisma: this.prisma,
+      monopolyGateway: this.monopolyGateway,
+      fetchSessionSnapshot: this.playerReadyManager.findSessionById.bind(
+        this.playerReadyManager,
+      ),
+    })
+  }
+
+  public async raiseAuctionBid(
+    id: string,
+    auctionId: string,
+    price: number,
+    req: Request,
+  ) {
+    const userId = req.session.userId
+
+    const session = await this.playerReadyManager.findSessionById(id)
+
+    if (session.currentTypeMove !== MonopolyMoveType.AUCTION) {
+      throw new BadRequestException('Ставка доступна только во время аукциона')
+    }
+
+    return this.auctionSessionMonopolyManager.raiseBid({
+      sessionId: id,
+      auctionId,
+      userId,
+      price,
+      prisma: this.prisma,
+      monopolyGateway: this.monopolyGateway,
+      fetchSessionSnapshot: this.playerReadyManager.findSessionById.bind(
+        this.playerReadyManager,
+      ),
+    })
+  }
+
+  public async declineAuction(id: string, auctionId: string, req: Request) {
+    const userId = req.session.userId
+
+    const session = await this.playerReadyManager.findSessionById(id)
+
+    if (
+      session.currentTypeMove !== MonopolyMoveType.AUCTION &&
+      session.currentTypeMove !== MonopolyMoveType.DECISION_TO_BUY_A_STREET
+    ) {
+      throw new BadRequestException('Отказ от аукциона сейчас недоступен')
+    }
+
+    return this.auctionSessionMonopolyManager.declineAuction({
+      sessionId: id,
+      auctionId,
+      userId,
       prisma: this.prisma,
       monopolyGateway: this.monopolyGateway,
       fetchSessionSnapshot: this.playerReadyManager.findSessionById.bind(

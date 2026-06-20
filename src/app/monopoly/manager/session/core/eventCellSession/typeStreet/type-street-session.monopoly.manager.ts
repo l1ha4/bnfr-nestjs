@@ -4,6 +4,7 @@ import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../../websocket/monopoly-websocket.gateway'
 import { createSystemChatMessage } from '../../chat/create-system-chat-message'
 import { TypePurchaseSessionMonopolyManager } from './typePurchase/type-purchase-session.monopoly.manager'
+import { TypeRentSessionMonopolyManager } from './typeRent/type-rent-session.monopoly.manager'
 
 type TypeStreetSessionCell = {
   id: string
@@ -28,6 +29,7 @@ type TypeStreetSessionParams<TSession extends TypeStreetSessionSnapshot> = {
   monopolyGateway: MonopolyWebsocketGateway
   fetchSessionSnapshot: (id: string) => Promise<TSession>
   typePurchaseSessionMonopolyManager: TypePurchaseSessionMonopolyManager
+  typeRentSessionMonopolyManager: TypeRentSessionMonopolyManager
 }
 
 @Injectable()
@@ -36,6 +38,7 @@ export class TypeStreetSessionMonopolyManager {
 
   public constructor(
     private readonly typePurchaseSessionMonopolyManager = new TypePurchaseSessionMonopolyManager(),
+    private readonly typeRentSessionMonopolyManager = new TypeRentSessionMonopolyManager(),
   ) {}
 
   public async handleStreetCell<TSession extends TypeStreetSessionSnapshot>({
@@ -46,6 +49,7 @@ export class TypeStreetSessionMonopolyManager {
     monopolyGateway,
     fetchSessionSnapshot,
     typePurchaseSessionMonopolyManager,
+    typeRentSessionMonopolyManager,
   }: TypeStreetSessionParams<TSession>) {
     if (!session.currentMovePlayerId) {
       throw new BadRequestException('Текущий игрок не определен')
@@ -98,6 +102,21 @@ export class TypeStreetSessionMonopolyManager {
       monopolyGateway.sendStateUpdated(sessionId, updatedSession)
 
       return updatedSession
+    }
+
+    if (
+      streetProperty.ownerUserId &&
+      streetProperty.ownerUserId !== session.currentMovePlayerId
+    ) {
+      return typeRentSessionMonopolyManager.expectRentPayment({
+        sessionId,
+        session,
+        landedCell,
+        ownerUserId: streetProperty.ownerUserId,
+        prisma,
+        monopolyGateway,
+        fetchSessionSnapshot,
+      })
     }
 
     this.logger.warn(

@@ -11,6 +11,7 @@ type ReadySessionSnapshot = {
   id: string
   status: MonopolyGameSessionStatus
   minPlayers: number
+  requiredPlayers: number
   players: ReadySessionPlayer[]
 }
 
@@ -57,7 +58,7 @@ export const updateSessionStatusWhenAllReady = async <
   UpdateSessionStatusWhenAllReadyResult<TSession>
 > => {
   const allPlayersReady =
-    session.players.length >= session.minPlayers &&
+    session.players.length === session.requiredPlayers &&
     session.players.every((player) => player.isReady)
 
   if (

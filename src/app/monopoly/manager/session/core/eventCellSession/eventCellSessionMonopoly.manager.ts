@@ -13,6 +13,7 @@ import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
 import { createSystemChatMessage } from '../chat/create-system-chat-message'
 import { TypePurchaseSessionMonopolyManager } from './typeStreet/typePurchase/type-purchase-session.monopoly.manager'
+import { TypeRentSessionMonopolyManager } from './typeStreet/typeRent/type-rent-session.monopoly.manager'
 import { TypeStreetSessionMonopolyManager } from './typeStreet/type-street-session.monopoly.manager'
 
 type EventCellSessionCell = {
@@ -49,6 +50,7 @@ export class EventCellSessionMonopolyManager {
   public constructor(
     private readonly typeStreetSessionMonopolyManager = new TypeStreetSessionMonopolyManager(),
     private readonly typePurchaseSessionMonopolyManager = new TypePurchaseSessionMonopolyManager(),
+    private readonly typeRentSessionMonopolyManager = new TypeRentSessionMonopolyManager(),
   ) {}
 
   public async handleLandedCell<TSession extends EventCellSessionSnapshot>({
@@ -103,6 +105,7 @@ export class EventCellSessionMonopolyManager {
         fetchSessionSnapshot,
         typePurchaseSessionMonopolyManager:
           this.typePurchaseSessionMonopolyManager,
+        typeRentSessionMonopolyManager: this.typeRentSessionMonopolyManager,
       })
     }
 

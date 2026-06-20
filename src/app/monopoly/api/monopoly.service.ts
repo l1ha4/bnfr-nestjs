@@ -82,6 +82,27 @@ export class MonopolyService {
     return this.sessionManager.buyStreet(id, cellId, req)
   }
 
+  async refusePurchase(id: string, req: Request) {
+    return this.sessionManager.refusePurchase(id, req)
+  }
+
+  async payRent(id: string, req: Request) {
+    return this.sessionManager.payRent(id, req)
+  }
+
+  async raiseAuctionBid(
+    id: string,
+    auctionId: string,
+    price: number,
+    req: Request,
+  ) {
+    return this.sessionManager.raiseAuctionBid(id, auctionId, price, req)
+  }
+
+  async declineAuction(id: string, auctionId: string, req: Request) {
+    return this.sessionManager.declineAuction(id, auctionId, req)
+  }
+
   async resetSession(id: string, req: Request) {
     return this.sessionManager.resetSession(id, req)
   }

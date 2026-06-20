@@ -15,6 +15,9 @@ import { PlayerReadyManager } from './manager/session/connection/playerReady/pla
 import { CreateSessionManager } from './manager/session/createSession/create-session.manager'
 import { ResetSessionManager } from './manager/session/core/resetSession/reset-session.manager'
 import { TypePurchaseSessionMonopolyManager } from './manager/session/core/eventCellSession/typeStreet/typePurchase/type-purchase-session.monopoly.manager'
+import { TypeRentSessionMonopolyManager } from './manager/session/core/eventCellSession/typeStreet/typeRent/type-rent-session.monopoly.manager'
+import { TypeAuctionSessionMonopolyManager } from './manager/session/core/eventCellSession/typeStreet/typeAuction/type-auction-session.monopoly.manager'
+import { AuctionSessionMonopolyManager } from './manager/session/core/auction/auction-session.monopoly.manager'
 
 @Module({
   imports: [MonopolyWebsocketModule],
@@ -36,6 +39,9 @@ import { TypePurchaseSessionMonopolyManager } from './manager/session/core/event
     CreateSessionManager,
     ResetSessionManager,
     TypePurchaseSessionMonopolyManager,
+    TypeRentSessionMonopolyManager,
+    TypeAuctionSessionMonopolyManager,
+    AuctionSessionMonopolyManager,
   ],
 })
 export class MonopolyModule {}
