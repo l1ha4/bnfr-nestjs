@@ -100,9 +100,7 @@ export class MonopolyAdminService {
     return true
   }
 
-  public async findFigurineById(
-    id: string,
-  ): Promise<{
+  public async findFigurineById(id: string): Promise<{
     id: string
     name: string
     url: string
@@ -307,6 +305,19 @@ export class MonopolyAdminService {
       await this.monopolyTemplateManager.connectStreetCollections(tx, id, dto)
 
       return updated
+    })
+  }
+
+  public async updateFormPublic(
+    id: string,
+    isPublic: boolean,
+  ): Promise<{ id: string }> {
+    await this.ensureFormExists(this.prisma, id)
+
+    return this.prisma.monopolyGameTemplate.update({
+      where: { id },
+      data: { isPublic },
+      select: { id: true },
     })
   }
 

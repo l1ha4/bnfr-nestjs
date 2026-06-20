@@ -162,6 +162,16 @@ export class MonopolyAdminController {
   }
 
   @Authorization(UserRole.ADMIN, UserRole.OWNER)
+  @Patch('form/:id/public')
+  @HttpCode(HttpStatus.OK)
+  public async updateFormPublic(
+    @Param('id') id: string,
+    @Body() dto: { isPublic: boolean },
+  ): Promise<{ id: string }> {
+    return this.monopolyAdminService.updateFormPublic(id, dto.isPublic)
+  }
+
+  @Authorization(UserRole.ADMIN, UserRole.OWNER)
   @Delete('form/:id')
   @HttpCode(HttpStatus.OK)
   public async deleteForm(@Param('id') id: string): Promise<boolean> {
