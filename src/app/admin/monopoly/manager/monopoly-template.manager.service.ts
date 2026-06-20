@@ -18,7 +18,25 @@ type MonopolyFormCellInput = {
   price?: number | null
   colorOwner?: string
   showPurchasePreview?: boolean
-  streetEconomy?: Prisma.InputJsonValue
+  streetEconomy?: MonopolyStreetEconomyInput
+}
+
+type MonopolyStreetEconomyInput = {
+  description: string
+  purchasePricesByOwnedCount: Array<number | null>
+  rentByOwnedCount: Array<number | null>
+  baseRentWithoutUpgrades: number | null
+  upgrades: Array<{
+    name: string
+    buyPrice: number | null
+    rentAfterUpgrade: number | null
+    sellPrice: number | null
+  }>
+  salePriceWithoutUpgrades: number | null
+  salePriceByUpgradeCount: Array<number | null>
+  mortgagePrice: number | null
+  mortgageBuyoutPrice: number | null
+  allowRentWhenMortgaged: boolean
 }
 
 type MonopolyStreetCollectionInput = {
@@ -79,7 +97,27 @@ export class MonopolyTemplateManagerService {
           price: cell.price ?? null,
           colorOwner: cell.colorOwner ?? null,
           showPurchasePreview: cell.showPurchasePreview ?? false,
-          streetEconomy: cell.streetEconomy,
+          streetEconomy: cell.streetEconomy
+            ? {
+                create: {
+                  description: cell.streetEconomy.description,
+                  purchasePricesByOwnedCount:
+                    cell.streetEconomy.purchasePricesByOwnedCount,
+                  rentByOwnedCount: cell.streetEconomy.rentByOwnedCount,
+                  baseRentWithoutUpgrades:
+                    cell.streetEconomy.baseRentWithoutUpgrades,
+                  upgrades: cell.streetEconomy.upgrades,
+                  salePriceWithoutUpgrades:
+                    cell.streetEconomy.salePriceWithoutUpgrades,
+                  salePriceByUpgradeCount:
+                    cell.streetEconomy.salePriceByUpgradeCount,
+                  mortgagePrice: cell.streetEconomy.mortgagePrice,
+                  mortgageBuyoutPrice: cell.streetEconomy.mortgageBuyoutPrice,
+                  allowRentWhenMortgaged:
+                    cell.streetEconomy.allowRentWhenMortgaged,
+                },
+              }
+            : undefined,
         })),
       },
 

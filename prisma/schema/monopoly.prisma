@@ -88,9 +88,9 @@ model MonopolyCellTemplate {
 
   type                MonopolyCellType?
   price               Int?
-  colorOwner          String?           @map("color_owner")
-  showPurchasePreview Boolean           @default(false) @map("show_purchase_preview")
-  streetEconomy       Json?             @map("street_economy")
+  colorOwner          String?                        @map("color_owner")
+  showPurchasePreview Boolean                        @default(false) @map("show_purchase_preview")
+  streetEconomy       MonopolyStreetEconomyTemplate?
 
   collectionId String?                           @map("collection_id")
   collection   MonopolyStreetCollectionTemplate? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
@@ -104,6 +104,33 @@ model MonopolyCellTemplate {
   @@index([templateId])
   @@index([collectionId])
   @@map("monopoly_cell_templates")
+}
+
+model MonopolyStreetEconomyTemplate {
+  id String @id @default(uuid())
+
+  cellId String               @unique @map("cell_id")
+  cell   MonopolyCellTemplate @relation(fields: [cellId], references: [id], onDelete: Cascade)
+
+  description String
+
+  purchasePricesByOwnedCount Json @map("purchase_prices_by_owned_count")
+  rentByOwnedCount           Json @map("rent_by_owned_count")
+
+  baseRentWithoutUpgrades Int? @map("base_rent_without_upgrades")
+  upgrades                Json
+
+  salePriceWithoutUpgrades Int? @map("sale_price_without_upgrades")
+  salePriceByUpgradeCount  Json @map("sale_price_by_upgrade_count")
+
+  mortgagePrice          Int?    @map("mortgage_price")
+  mortgageBuyoutPrice    Int?    @map("mortgage_buyout_price")
+  allowRentWhenMortgaged Boolean @default(false) @map("allow_rent_when_mortgaged")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("monopoly_street_economy_templates")
 }
 
 model MonopolyStreetCollectionTemplate {

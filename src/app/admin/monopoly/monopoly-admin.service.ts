@@ -508,6 +508,9 @@ export class MonopolyAdminService {
       where: { id },
       include: {
         cells: {
+          include: {
+            streetEconomy: true,
+          },
           orderBy: {
             orderIndex: 'asc',
           },
