@@ -21,7 +21,7 @@ export class ConnectionPlayerManager {
       throw new BadRequestException('Не передан id сессии')
     }
 
-    const userId = req.session.userId
+    const userId = req.session.userId!
 
     const [session, userSessionsCount, sessionPlayersCount] = await Promise.all(
       [

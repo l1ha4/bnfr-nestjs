@@ -18,7 +18,7 @@ export class CreateSessionManager {
   ) {}
 
   public async createSession(createSessionDto: CreateSessionDto, req: Request) {
-    const userId = req.session.userId
+    const userId = req.session.userId!
 
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },

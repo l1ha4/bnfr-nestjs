@@ -242,7 +242,7 @@ export class SessionManager {
   }
 
   public async exitSession(id: string, req: Request) {
-    const userId = req.session.userId
+    const userId = req.session.userId!
 
     const player = await this.prisma.monopolyGameSessionPlayer.findUnique({
       where: {
@@ -395,7 +395,8 @@ export class SessionManager {
     }
 
     if (
-      session.currentTypeMove !== MonopolyMoveType.EXPECTED_RENT_PAYMENT_RESPONSE
+      session.currentTypeMove !==
+      MonopolyMoveType.EXPECTED_RENT_PAYMENT_RESPONSE
     ) {
       throw new BadRequestException('Оплата аренды сейчас недоступна')
     }
@@ -417,7 +418,7 @@ export class SessionManager {
     price: number,
     req: Request,
   ) {
-    const userId = req.session.userId
+    const userId = req.session.userId!
 
     const session = await this.playerReadyManager.findSessionById(id)
 
@@ -439,7 +440,7 @@ export class SessionManager {
   }
 
   public async declineAuction(id: string, auctionId: string, req: Request) {
-    const userId = req.session.userId
+    const userId = req.session.userId!!
 
     const session = await this.playerReadyManager.findSessionById(id)
 
