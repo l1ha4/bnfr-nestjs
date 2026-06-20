@@ -11,11 +11,13 @@ import {
 } from '@prisma/client'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
+import { createSystemChatMessage } from '../chat/create-system-chat-message'
 import { TypePurchaseSessionMonopolyManager } from './typeStreet/typePurchase/type-purchase-session.monopoly.manager'
 import { TypeStreetSessionMonopolyManager } from './typeStreet/type-street-session.monopoly.manager'
 
 type EventCellSessionCell = {
   id: string
+  name: string
   orderIndex: number
   type: MonopolyCellType | null
   price: number | null
@@ -67,6 +69,29 @@ export class EventCellSessionMonopolyManager {
     if (!landedCell) {
       throw new NotFoundException('Клетка для обработки не найдена')
     }
+
+    const currentPlayer = await prisma.user.findUnique({
+      where: {
+        id: session.currentMovePlayerId,
+      },
+      select: {
+        displayName: true,
+      },
+    })
+
+    const currentPlayerName = currentPlayer?.displayName ?? 'Игрок'
+
+    await createSystemChatMessage({
+      prisma,
+      monopolyGateway,
+      sessionId,
+      userId: session.currentMovePlayerId,
+      userName: currentPlayerName,
+      content:
+        landedCell.type === MonopolyCellType.STREET
+          ? `Игрок ${currentPlayerName} попал на улицу ${landedCell.name}`
+          : `Игрок ${currentPlayerName} попал на клетку ${landedCell.name}`,
+    })
 
     if (landedCell.type === MonopolyCellType.STREET) {
       return this.typeStreetSessionMonopolyManager.handleStreetCell({

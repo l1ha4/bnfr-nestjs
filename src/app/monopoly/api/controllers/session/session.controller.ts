@@ -38,6 +38,26 @@ export class SessionController {
   }
 
   @Authorization()
+  @Get('session/:sessionId/chat-history')
+  getChatHistory(@Param('sessionId') sessionId: string) {
+    return this.monopolyService.getSessionChatHistory(sessionId)
+  }
+
+  @Authorization()
+  @Post('session/:sessionId/chat-message')
+  createChatMessage(
+    @Param('sessionId') sessionId: string,
+    @Body() body: { content: string },
+    @Req() req: Request,
+  ) {
+    return this.monopolyService.createSessionChatMessage(
+      sessionId,
+      body.content,
+      req,
+    )
+  }
+
+  @Authorization()
   @Delete('session/:sessionId/exit')
   exitSession(@Param('sessionId') sessionId: string, @Req() req: Request) {
     return this.monopolyService.exitSession(sessionId, req)

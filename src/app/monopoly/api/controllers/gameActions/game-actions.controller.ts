@@ -27,7 +27,7 @@ export class GameActionsController {
 
   @Authorization(UserRole.ADMIN)
   @Post('session/:sessionId/reset')
-  resetSession(@Param('sessionId') sessionId: string) {
-    return this.monopolyService.resetSession(sessionId)
+  resetSession(@Param('sessionId') sessionId: string, @Req() req: Request) {
+    return this.monopolyService.resetSession(sessionId, req)
   }
 }

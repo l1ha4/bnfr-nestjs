@@ -5,6 +5,7 @@ import { UpdatePlayerReadyDto } from '../../../../api/dto/update-player-ready.dt
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
 import { ColorManager } from '../color/color.manager'
 import { FigurinesManager } from '../figurines/figurines.manager'
+import { createSystemChatMessage } from '../../core/chat/create-system-chat-message'
 import { updateSessionStatusWhenAllReady } from '../../core/readySession/update-session-status-on-ready'
 
 @Injectable()
@@ -140,6 +141,26 @@ export class PlayerReadyManager {
         figurineId: dto.figurineId,
         isReady: true,
       },
+    })
+
+    const user = await this.prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        displayName: true,
+      },
+    })
+
+    const playerName = user?.displayName ?? 'Игрок'
+
+    await createSystemChatMessage({
+      prisma: this.prisma,
+      monopolyGateway: this.monopolyGateway,
+      sessionId: id,
+      userId,
+      userName: playerName,
+      content: `Игрок ${playerName} готов к сессии`,
     })
 
     const session = await this.fetchSessionSnapshot(id)

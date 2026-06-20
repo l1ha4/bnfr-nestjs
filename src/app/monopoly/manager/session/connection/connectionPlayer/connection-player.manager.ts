@@ -7,6 +7,7 @@ import {
 import type { Request } from 'express'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
+import { createSystemChatMessage } from '../../core/chat/create-system-chat-message'
 
 @Injectable()
 export class ConnectionPlayerManager {
@@ -81,6 +82,15 @@ export class ConnectionPlayerManager {
       ...player,
       displayName: user?.displayName ?? 'Игрок',
       picture: user?.picture ?? null,
+    })
+
+    await createSystemChatMessage({
+      prisma: this.prisma,
+      monopolyGateway: this.monopolyGateway,
+      sessionId: id,
+      userId,
+      userName: user?.displayName ?? 'Игрок',
+      content: `Игрок ${user?.displayName ?? 'Игрок'} подключился к сессии`,
     })
 
     return true

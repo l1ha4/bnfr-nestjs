@@ -1,6 +1,7 @@
 import { MonopolyGameSessionStatus, MonopolyMoveType } from '@prisma/client'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
+import { createSystemChatMessage } from '../chat/create-system-chat-message'
 
 type ReadySessionPlayer = {
   isReady: boolean
@@ -120,6 +121,27 @@ export const updateSessionStatusWhenAllReady = async <
   })
 
   const updatedSession = await fetchSessionSnapshot(sessionId)
+
+  const firstPlayerId = playersInRandomOrder[0]?.userId
+  const firstPlayer = firstPlayerId
+    ? await prisma.user.findUnique({
+        where: {
+          id: firstPlayerId,
+        },
+        select: {
+          displayName: true,
+        },
+      })
+    : null
+
+  await createSystemChatMessage({
+    prisma,
+    monopolyGateway,
+    sessionId,
+    userId: firstPlayerId ?? null,
+    userName: firstPlayer?.displayName ?? 'Игрок',
+    content: `Все игроки готовы. Игра начинается, первым ходит ${firstPlayer?.displayName ?? 'Игрок'}`,
+  })
 
   monopolyGateway.sendStateUpdated(sessionId, updatedSession)
 

@@ -7,9 +7,12 @@ import {
 import { MonopolyGameSessionStatus, MonopolyMoveType } from '@prisma/client'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../../../websocket/monopoly-websocket.gateway'
+import { changeTurnToNextPlayer } from '../../../changeTurn/change-turn-to-next-player'
+import { createSystemChatMessage } from '../../../chat/create-system-chat-message'
 
 type TypePurchaseSessionCell = {
   id: string
+  name: string
   orderIndex: number
   price: number | null
 }
@@ -129,15 +132,33 @@ export class TypePurchaseSessionMonopolyManager {
           },
         })
       }
+    })
 
-      await tx.monopolyGameSession.update({
-        where: {
-          id: sessionId,
-        },
-        data: {
-          currentTypeMove: MonopolyMoveType.WAIT,
-        },
-      })
+    const currentPlayerUser = await prisma.user.findUnique({
+      where: {
+        id: currentPlayer.userId,
+      },
+      select: {
+        displayName: true,
+      },
+    })
+
+    const currentPlayerName = currentPlayerUser?.displayName ?? 'Игрок'
+
+    await createSystemChatMessage({
+      prisma,
+      monopolyGateway,
+      sessionId,
+      userId: currentPlayer.userId,
+      userName: currentPlayerName,
+      content: `Игрок ${currentPlayerName} покупает улицу ${landedCell.name} за ${streetPrice}`,
+    })
+
+    await changeTurnToNextPlayer({
+      prisma,
+      monopolyGateway,
+      sessionId,
+      currentMovePlayerId: session.currentMovePlayerId,
     })
 
     const updatedSession = await fetchSessionSnapshot(sessionId)

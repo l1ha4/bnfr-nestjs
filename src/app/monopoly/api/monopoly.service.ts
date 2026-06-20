@@ -30,6 +30,18 @@ export class MonopolyService {
     return this.sessionManager.findSessionById(id)
   }
 
+  async getSessionChatHistory(sessionId: string) {
+    return this.sessionManager.getSessionChatHistory(sessionId)
+  }
+
+  async createSessionChatMessage(
+    sessionId: string,
+    content: string,
+    req: Request,
+  ) {
+    return this.sessionManager.createSessionChatMessage(sessionId, content, req)
+  }
+
   async getFigurineCollections() {
     return this.sessionManager.getFigurineCollections()
   }
@@ -70,7 +82,7 @@ export class MonopolyService {
     return this.sessionManager.buyStreet(id, cellId, req)
   }
 
-  async resetSession(id: string) {
-    return this.sessionManager.resetSession(id)
+  async resetSession(id: string, req: Request) {
+    return this.sessionManager.resetSession(id, req)
   }
 }

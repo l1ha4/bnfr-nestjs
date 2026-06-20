@@ -12,9 +12,11 @@ import { PrismaService } from '@/core/prisma/prisma.service'
 import type { Request } from 'express'
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
 import { EventCellSessionMonopolyManager } from '../eventCellSession/eventCellSessionMonopoly.manager'
+import { createSystemChatMessage } from '../chat/create-system-chat-message'
 
 type RollTurnSessionCell = {
   id: string
+  name: string
   orderIndex: number
   type: MonopolyCellType | null
   price: number | null
@@ -100,6 +102,17 @@ export const rollTurnSession = async <
     throw new NotFoundException('Игрок в сессии не найден')
   }
 
+  const currentPlayerUser = await prisma.user.findUnique({
+    where: {
+      id: session.currentMovePlayerId,
+    },
+    select: {
+      displayName: true,
+    },
+  })
+
+  const currentPlayerName = currentPlayerUser?.displayName ?? 'Игрок'
+
   if (!session.template.cells.length) {
     throw new BadRequestException('У шаблона сессии нет клеток')
   }
@@ -130,6 +143,15 @@ export const rollTurnSession = async <
         money: moneyAfterMove,
       },
     })
+  })
+
+  await createSystemChatMessage({
+    prisma,
+    monopolyGateway,
+    sessionId,
+    userId: session.currentMovePlayerId,
+    userName: currentPlayerName,
+    content: `Игрок ${currentPlayerName} бросил кубики: ${firstDie} и ${secondDie} (сумма ${totalSteps})`,
   })
 
   const eventCellSessionMonopolyManager = new EventCellSessionMonopolyManager()

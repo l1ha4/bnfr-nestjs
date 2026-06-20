@@ -74,4 +74,12 @@ export class MonopolyWebsocketGateway {
   public sendStateUpdated(sessionId: string, payload: unknown) {
     this.sessionWsService.sendStateUpdated(this.server, sessionId, payload)
   }
+
+  public sendChatMessageCreated(sessionId: string, payload: unknown) {
+    this.sessionWsService.sendChatMessageCreated(
+      this.server,
+      sessionId,
+      payload,
+    )
+  }
 }

@@ -211,8 +211,9 @@ model MonopolyGameSession {
   startedAt  DateTime? @map("started_at")
   finishedAt DateTime? @map("finished_at")
 
-  players    MonopolyGameSessionPlayer[]
-  properties MonopolyGameSessionProperty[]
+  players      MonopolyGameSessionPlayer[]
+  properties   MonopolyGameSessionProperty[]
+  chatMessages MonopolyGameSessionChatMessage[]
 
   @@map("monopoly_game_sessions")
 }
@@ -285,6 +286,24 @@ enum MonopolyGameSessionStatus {
   PAUSED
   FINISHED
   CANCELLED
+}
+
+model MonopolyGameSessionChatMessage {
+  id String @id @default(uuid())
+
+  sessionId String              @map("session_id")
+  session   MonopolyGameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  userId String? @map("user_id")
+
+  isSystemMessage Boolean @default(false) @map("is_system_message")
+
+  content String
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([sessionId])
+  @@map("monopoly_game_session_chat_messages")
 }
 
 // * FIGURINES AND COLORS

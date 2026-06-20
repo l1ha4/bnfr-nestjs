@@ -20,6 +20,15 @@ export class CreateSessionManager {
   public async createSession(createSessionDto: CreateSessionDto, req: Request) {
     const userId = req.session.userId
 
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: {
+        displayName: true,
+      },
+    })
+
+    const playerName = user.displayName?.trim() || 'Игрок'
+
     const userSessionsCount = await this.prisma.monopolyGameSessionPlayer.count(
       {
         where: { userId },
@@ -49,22 +58,59 @@ export class CreateSessionManager {
       )
     }
 
-    const session = await this.prisma.monopolyGameSession.create({
-      data: {
-        name: createSessionDto.name,
-        playersCount,
-        template: {
-          connect: { id: createSessionDto.templateId },
-        },
-        createdById: userId,
+    const { session, chatMessage } = await this.prisma.$transaction(
+      async (tx) => {
+        const createdSession = await tx.monopolyGameSession.create({
+          data: {
+            name: createSessionDto.name,
+            playersCount,
+            template: {
+              connect: { id: createSessionDto.templateId },
+            },
+            createdById: userId,
+          },
+        })
+
+        const createdChatMessage =
+          await tx.monopolyGameSessionChatMessage.create({
+            data: {
+              sessionId: createdSession.id,
+              userId,
+              isSystemMessage: true,
+              content: `Сессия ${createdSession.name} успешно создана игроком ${playerName}`,
+            },
+            select: {
+              id: true,
+              sessionId: true,
+              userId: true,
+              content: true,
+              isSystemMessage: true,
+              createdAt: true,
+            },
+          })
+
+        return {
+          session: createdSession,
+          chatMessage: createdChatMessage,
+        }
       },
-    })
+    )
 
     this.monopolyGateway.sendSessionCreated({
       id: session.id,
       name: session.name,
       playersCount: session.playersCount,
       templateId: session.templateId,
+    })
+
+    this.monopolyGateway.sendChatMessageCreated(session.id, {
+      id: chatMessage.id,
+      sessionId: chatMessage.sessionId,
+      userId: chatMessage.userId,
+      userName: playerName,
+      content: chatMessage.content,
+      isSystemMessage: chatMessage.isSystemMessage,
+      createdAt: chatMessage.createdAt,
     })
 
     await this.connectionPlayerManager.connectToSession(session.id, req)

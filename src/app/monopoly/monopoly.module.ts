@@ -4,9 +4,7 @@ import { ListSessionsController } from './api/controllers/listSessions/list-sess
 import { CreateSessionController } from './api/controllers/createSession/create-session.controller'
 import { SessionController } from './api/controllers/session/session.controller'
 import { GameActionsController } from './api/controllers/gameActions/game-actions.controller'
-import { MonopolyWebsocketGateway } from './websocket/monopoly-websocket.gateway'
-import { ListSessionsWsService } from './websocket/listSessions/monopoly-listSessions.gateway'
-import { SessionWsService } from './websocket/session/session.ws.service'
+import { MonopolyWebsocketModule } from './websocket/monopoly-websocket.module'
 import { ListSessionManager } from './manager/listSession/list-session.manager'
 import { SessionManager } from './manager/session/session.manager'
 import { TemplateManager } from './manager/template/template.manager'
@@ -19,6 +17,7 @@ import { ResetSessionManager } from './manager/session/core/resetSession/reset-s
 import { TypePurchaseSessionMonopolyManager } from './manager/session/core/eventCellSession/typeStreet/typePurchase/type-purchase-session.monopoly.manager'
 
 @Module({
+  imports: [MonopolyWebsocketModule],
   controllers: [
     ListSessionsController,
     CreateSessionController,
@@ -27,9 +26,6 @@ import { TypePurchaseSessionMonopolyManager } from './manager/session/core/event
   ],
   providers: [
     MonopolyService,
-    MonopolyWebsocketGateway,
-    ListSessionsWsService,
-    SessionWsService,
     ListSessionManager,
     SessionManager,
     TemplateManager,

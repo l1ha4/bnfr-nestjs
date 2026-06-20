@@ -2,10 +2,12 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { MonopolyGameSessionStatus, MonopolyMoveType } from '@prisma/client'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../../websocket/monopoly-websocket.gateway'
+import { createSystemChatMessage } from '../../chat/create-system-chat-message'
 import { TypePurchaseSessionMonopolyManager } from './typePurchase/type-purchase-session.monopoly.manager'
 
 type TypeStreetSessionCell = {
   id: string
+  name: string
   orderIndex: number
   type: string | null
   price: number | null
@@ -69,6 +71,26 @@ export class TypeStreetSessionMonopolyManager {
         data: {
           currentTypeMove: MonopolyMoveType.DECISION_TO_BUY_A_STREET,
         },
+      })
+
+      const currentPlayer = await prisma.user.findUnique({
+        where: {
+          id: session.currentMovePlayerId,
+        },
+        select: {
+          displayName: true,
+        },
+      })
+
+      const currentPlayerName = currentPlayer?.displayName ?? 'Игрок'
+
+      await createSystemChatMessage({
+        prisma,
+        monopolyGateway,
+        sessionId,
+        userId: session.currentMovePlayerId,
+        userName: currentPlayerName,
+        content: `Игрок ${currentPlayerName} выбирает: купить улицу ${landedCell.name} или выставить ее на аукцион`,
       })
 
       const updatedSession = await fetchSessionSnapshot(sessionId)

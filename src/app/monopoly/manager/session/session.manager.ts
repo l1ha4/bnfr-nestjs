@@ -36,6 +36,150 @@ export class SessionManager {
     return this.playerReadyManager.findSessionById(id)
   }
 
+  public async getSessionChatHistory(sessionId: string): Promise<
+    {
+      id: string
+      sessionId: string
+      userId: string | null
+      userName: string | null
+      content: string
+      isSystemMessage: boolean
+      createdAt: Date
+    }[]
+  > {
+    const session = await this.prisma.monopolyGameSession.findUnique({
+      where: { id: sessionId },
+      select: { id: true },
+    })
+
+    if (!session) {
+      throw new NotFoundException('Сессия не найдена')
+    }
+
+    const messages = await this.prisma.monopolyGameSessionChatMessage.findMany({
+      where: {
+        sessionId,
+      },
+      select: {
+        id: true,
+        sessionId: true,
+        userId: true,
+        content: true,
+        isSystemMessage: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    })
+
+    const userIds = Array.from(
+      new Set(
+        messages
+          .map((message) => message.userId)
+          .filter((userId): userId is string => Boolean(userId)),
+      ),
+    )
+
+    const users = userIds.length
+      ? await this.prisma.user.findMany({
+          where: {
+            id: {
+              in: userIds,
+            },
+          },
+          select: {
+            id: true,
+            displayName: true,
+          },
+        })
+      : []
+
+    const userNameById = new Map(
+      users.map((user) => [user.id, user.displayName]),
+    )
+
+    return messages.map((message) => ({
+      id: message.id,
+      sessionId: message.sessionId,
+      userId: message.userId,
+      userName: message.userId
+        ? (userNameById.get(message.userId) ?? null)
+        : null,
+      content: message.content,
+      isSystemMessage: message.isSystemMessage,
+      createdAt: message.createdAt,
+    }))
+  }
+
+  public async createSessionChatMessage(
+    sessionId: string,
+    content: string,
+    req: Request,
+  ): Promise<{
+    id: string
+    sessionId: string
+    userId: string | null
+    userName: string | null
+    content: string
+    isSystemMessage: boolean
+    createdAt: Date
+  }> {
+    const trimmedContent = content?.trim()
+
+    if (!trimmedContent) {
+      throw new BadRequestException('Сообщение не может быть пустым')
+    }
+
+    const session = await this.prisma.monopolyGameSession.findUnique({
+      where: { id: sessionId },
+      select: { id: true },
+    })
+
+    if (!session) {
+      throw new NotFoundException('Сессия не найдена')
+    }
+
+    const userId = req.session.userId
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { displayName: true },
+    })
+
+    const createdMessage =
+      await this.prisma.monopolyGameSessionChatMessage.create({
+        data: {
+          sessionId,
+          userId,
+          content: trimmedContent,
+          isSystemMessage: false,
+        },
+        select: {
+          id: true,
+          sessionId: true,
+          userId: true,
+          content: true,
+          isSystemMessage: true,
+          createdAt: true,
+        },
+      })
+
+    const payload = {
+      id: createdMessage.id,
+      sessionId: createdMessage.sessionId,
+      userId: createdMessage.userId,
+      userName: user?.displayName ?? null,
+      content: createdMessage.content,
+      isSystemMessage: createdMessage.isSystemMessage,
+      createdAt: createdMessage.createdAt,
+    }
+
+    this.monopolyGateway.sendChatMessageCreated(sessionId, payload)
+
+    return payload
+  }
+
   public async getCurrentSession(req: Request) {
     const userId = req.session.userId
 
@@ -180,7 +324,7 @@ export class SessionManager {
     const cellTemplate =
       await this.prisma.monopolyCellTemplate.findUniqueOrThrow({
         where: { id: cellId },
-        select: { id: true, orderIndex: true, price: true },
+        select: { id: true, name: true, orderIndex: true, price: true },
       })
 
     return this.typePurchaseSessionMonopolyManager.buyStreet({
@@ -195,7 +339,7 @@ export class SessionManager {
     })
   }
 
-  public async resetSession(id: string) {
-    return this.resetSessionManager.resetSession(id)
+  public async resetSession(id: string, req: Request) {
+    return this.resetSessionManager.resetSession(id, req)
   }
 }

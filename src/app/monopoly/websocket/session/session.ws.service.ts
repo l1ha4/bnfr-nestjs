@@ -45,4 +45,14 @@ export class SessionWsService {
       .to(getMonopolySessionRoom(sessionId))
       .emit(MonopolySessionWsEvent.STATE_UPDATED, payload)
   }
+
+  public sendChatMessageCreated(
+    server: Server,
+    sessionId: string,
+    payload: unknown,
+  ) {
+    server
+      .to(getMonopolySessionRoom(sessionId))
+      .emit(MonopolySessionWsEvent.CHAT_MESSAGE_CREATED, payload)
+  }
 }

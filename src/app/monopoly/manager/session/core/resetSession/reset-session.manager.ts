@@ -1,7 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { MonopolyGameSessionStatus, MonopolyMoveType } from '@prisma/client'
+import type { Request } from 'express'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
+import { createSystemChatMessage } from '../chat/create-system-chat-message'
 
 @Injectable()
 export class ResetSessionManager {
@@ -12,7 +14,9 @@ export class ResetSessionManager {
     private readonly monopolyGateway: MonopolyWebsocketGateway,
   ) {}
 
-  public async resetSession(sessionId: string) {
+  public async resetSession(sessionId: string, req: Request) {
+    const adminUserId = req.session.userId
+
     const session = await this.prisma.monopolyGameSession.findUnique({
       where: { id: sessionId },
       select: {
@@ -77,9 +81,29 @@ export class ResetSessionManager {
 
     this.logger.log(`Session ${sessionId} has been reset to initial state`)
 
+    const adminUser = await this.prisma.user.findUnique({
+      where: {
+        id: adminUserId,
+      },
+      select: {
+        displayName: true,
+      },
+    })
+
+    const adminName = adminUser?.displayName ?? 'Администратор'
+
     this.monopolyGateway.sendStateUpdated(sessionId, {
       id: sessionId,
       reset: true,
+    })
+
+    await createSystemChatMessage({
+      prisma: this.prisma,
+      monopolyGateway: this.monopolyGateway,
+      sessionId,
+      userId: null,
+      userName: adminName,
+      content: `Сессия была сброшена администратором ${adminName}`,
     })
 
     return { success: true }
