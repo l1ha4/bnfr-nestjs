@@ -1,5 +1,9 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
-import { MonopolyGameSessionStatus, MonopolyMoveType } from '@prisma/client'
+import {
+  MonopolyCellType,
+  MonopolyGameSessionStatus,
+  MonopolyMoveType,
+} from '@prisma/client'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../../websocket/monopoly-websocket.gateway'
 import { createSystemChatMessage } from '../../chat/create-system-chat-message'
@@ -10,8 +14,9 @@ type TypeStreetSessionCell = {
   id: string
   name: string
   orderIndex: number
-  type: string | null
+  type: MonopolyCellType | null
   price: number | null
+  collectionId?: string | null
 }
 
 type TypeStreetSessionSnapshot = {

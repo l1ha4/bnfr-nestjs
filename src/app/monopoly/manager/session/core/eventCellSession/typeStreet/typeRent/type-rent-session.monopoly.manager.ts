@@ -8,16 +8,38 @@ import {
   MonopolyCellType,
   MonopolyGameSessionStatus,
   MonopolyMoveType,
+  MonopolyStreetRentGrowthMode,
+  Prisma,
 } from '@prisma/client'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../../../websocket/monopoly-websocket.gateway'
 import { createSystemChatMessage } from '../../../chat/create-system-chat-message'
 import { changeTurnToNextPlayer } from '../../../changeTurn/change-turn-to-next-player'
+import { resolveStreetRentAmount } from './street-rent-calculator'
 
 type TypeRentSessionCell = {
   id: string
   name: string
+  orderIndex: number
+  type: MonopolyCellType | null
   price: number | null
+  collectionId?: string | null
+  collection?: {
+    rentGrowthMode: MonopolyStreetRentGrowthMode
+    streetsCount: number | null
+  } | null
+  streetEconomy?: {
+    description: string
+    purchasePricesByOwnedCount: Prisma.JsonValue
+    rentByOwnedCount: Prisma.JsonValue
+    baseRentWithoutUpgrades: number | null
+    upgrades: Prisma.JsonValue
+    salePriceWithoutUpgrades: number | null
+    salePriceByUpgradeCount: Prisma.JsonValue
+    mortgagePrice: number | null
+    mortgageBuyoutPrice: number | null
+    allowRentWhenMortgaged: boolean
+  } | null
 }
 
 type TypeRentSessionSnapshot = {
@@ -33,12 +55,41 @@ type TypeRentPaymentSessionCell = {
   orderIndex: number
   type: MonopolyCellType | null
   price: number | null
+  collectionId?: string | null
+  collection?: {
+    rentGrowthMode: MonopolyStreetRentGrowthMode
+    streetsCount: number | null
+  } | null
+  streetEconomy?: {
+    description: string
+    purchasePricesByOwnedCount: Prisma.JsonValue
+    rentByOwnedCount: Prisma.JsonValue
+    baseRentWithoutUpgrades: number | null
+    upgrades: Prisma.JsonValue
+    salePriceWithoutUpgrades: number | null
+    salePriceByUpgradeCount: Prisma.JsonValue
+    mortgagePrice: number | null
+    mortgageBuyoutPrice: number | null
+    allowRentWhenMortgaged: boolean
+  } | null
 }
 
 type TypeRentPaymentSessionSnapshot = TypeRentSessionSnapshot & {
   template: {
     cells: TypeRentPaymentSessionCell[]
   }
+  properties?: Array<{
+    cellTemplateId: string
+    ownerUserId: string | null
+    level: number
+    isMortgaged: boolean
+  }>
+  property?: Array<{
+    cellTemplateId: string
+    ownerUserId: string | null
+    level: number
+    isMortgaged: boolean
+  }>
 }
 
 type TypeRentSessionParams<TSession extends TypeRentSessionSnapshot> = {
@@ -94,7 +145,11 @@ export class TypeRentSessionMonopolyManager {
       throw new NotFoundException('Игрок-владелец не найден')
     }
 
-    const rentAmount = landedCell.price ?? 0
+    const rentAmount = resolveStreetRentAmount({
+      session,
+      landedCell,
+      ownerUserId,
+    })
 
     await prisma.monopolyGameSession.update({
       where: {
@@ -205,7 +260,11 @@ export class TypeRentSessionMonopolyManager {
       throw new NotFoundException('Игрок-владелец в сессии не найден')
     }
 
-    const rentAmount = landedCell.price ?? 0
+    const rentAmount = resolveStreetRentAmount({
+      session,
+      landedCell,
+      ownerUserId: streetProperty.ownerUserId,
+    })
 
     if (tenantPlayer.money < rentAmount) {
       throw new ConflictException('Недостаточно денег для оплаты аренды')

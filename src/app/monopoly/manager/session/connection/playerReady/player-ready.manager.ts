@@ -1,6 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import type { Request } from 'express'
-import { MonopolyGameSessionAuctionStatus } from '@prisma/client'
+import {
+  MonopolyGameSessionAuctionStatus,
+  MonopolyStreetRentGrowthMode,
+  Prisma,
+} from '@prisma/client'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { UpdatePlayerReadyDto } from '../../../../api/dto/update-player-ready.dto'
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
@@ -25,6 +29,31 @@ export class PlayerReadyManager {
         template: {
           include: {
             cells: {
+              include: {
+                collection: {
+                  select: {
+                    id: true,
+                    rentGrowthMode: true,
+                    streetsCount: true,
+                    upgradesEnabled: true,
+                    maxUpgradeLevel: true,
+                  },
+                },
+                streetEconomy: {
+                  select: {
+                    description: true,
+                    purchasePricesByOwnedCount: true,
+                    rentByOwnedCount: true,
+                    baseRentWithoutUpgrades: true,
+                    upgrades: true,
+                    salePriceWithoutUpgrades: true,
+                    salePriceByUpgradeCount: true,
+                    mortgagePrice: true,
+                    mortgageBuyoutPrice: true,
+                    allowRentWhenMortgaged: true,
+                  },
+                },
+              },
               orderBy: {
                 orderIndex: 'asc',
               },
@@ -34,6 +63,15 @@ export class PlayerReadyManager {
                 cells: {
                   orderBy: {
                     orderIndex: 'asc',
+                  },
+                },
+              },
+            },
+            cardGroups: {
+              include: {
+                cards: {
+                  include: {
+                    actions: true,
                   },
                 },
               },
@@ -138,13 +176,13 @@ export class PlayerReadyManager {
           streetName,
           streetInitialPrice: activeAuction.streetInitialPrice,
           initiatorUserId: activeAuction.initiatorUserId,
-          currentAuctionPlayerUserId:
-            activeAuction.currentAuctionPlayerId
-              ? (activeAuction.players.find(
-                  (player) =>
-                    player.sessionPlayerId === activeAuction.currentAuctionPlayerId,
-                )?.sessionPlayer.userId ?? null)
-              : null,
+          currentAuctionPlayerUserId: activeAuction.currentAuctionPlayerId
+            ? (activeAuction.players.find(
+                (player) =>
+                  player.sessionPlayerId ===
+                  activeAuction.currentAuctionPlayerId,
+              )?.sessionPlayer.userId ?? null)
+            : null,
           turnExpiresAt: activeAuction.turnExpiresAt,
           lastBid: activeAuction.lastBid
             ? {
@@ -177,8 +215,8 @@ export class PlayerReadyManager {
               usersMap.get(auctionPlayer.sessionPlayer.userId)?.displayName ??
               'Игрок',
             color:
-              colorsMap.get(auctionPlayer.sessionPlayer.colorId ?? '')?.hexCode ??
-              '#7D8590',
+              colorsMap.get(auctionPlayer.sessionPlayer.colorId ?? '')
+                ?.hexCode ?? '#7D8590',
             queueIndex: auctionPlayer.queueIndex,
             continuesAuction: auctionPlayer.continuesAuction,
             declinedAt: auctionPlayer.declinedAt,
@@ -192,6 +230,7 @@ export class PlayerReadyManager {
 
     return {
       ...session,
+      properties: session.properties,
       property: session.properties,
       minPlayers: session.template.minPlayers,
       requiredPlayers: session.playersCount,

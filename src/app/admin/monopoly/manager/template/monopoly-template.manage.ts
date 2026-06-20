@@ -8,7 +8,7 @@ import {
   MonopolyStreetRentGrowthMode,
 } from '@prisma/client'
 import { PrismaService } from '@/core/prisma/prisma.service'
-import { CreateMonopolyFormDto } from '../dto/create-monopoly-form.dto'
+import { CreateMonopolyFormDto } from '@/app/admin/monopoly/dto/create-monopoly-form.dto'
 
 type MonopolyFormCellInput = {
   name: string

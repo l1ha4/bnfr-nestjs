@@ -12,6 +12,7 @@ import {
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
 import { createSystemChatMessage } from '../chat/create-system-chat-message'
+import { TypeEventSessionMonopolyManager } from './typeEvent/type-event-session.monopoly.manager'
 import { TypePurchaseSessionMonopolyManager } from './typeStreet/typePurchase/type-purchase-session.monopoly.manager'
 import { TypeRentSessionMonopolyManager } from './typeStreet/typeRent/type-rent-session.monopoly.manager'
 import { TypeStreetSessionMonopolyManager } from './typeStreet/type-street-session.monopoly.manager'
@@ -22,6 +23,7 @@ type EventCellSessionCell = {
   orderIndex: number
   type: MonopolyCellType | null
   price: number | null
+  collectionId?: string | null
 }
 
 type EventCellSessionSnapshot = {
@@ -30,7 +32,24 @@ type EventCellSessionSnapshot = {
   currentMovePlayerId: string | null
   currentTypeMove: MonopolyMoveType
   template: {
+    moneyPerLap?: number
     cells: EventCellSessionCell[]
+    cardGroups?: Array<{
+      id: string
+      title: string
+      cards: Array<{
+        id: string
+        title: string
+        description: string | null
+        actions: Array<{
+          id: string
+          actionType: string
+          amount: number | null
+          targetCellId: string | null
+          text: string | null
+        }>
+      }>
+    }>
   }
 }
 
@@ -48,6 +67,7 @@ export class EventCellSessionMonopolyManager {
   private readonly logger = new Logger(EventCellSessionMonopolyManager.name)
 
   public constructor(
+    private readonly typeEventSessionMonopolyManager = new TypeEventSessionMonopolyManager(),
     private readonly typeStreetSessionMonopolyManager = new TypeStreetSessionMonopolyManager(),
     private readonly typePurchaseSessionMonopolyManager = new TypePurchaseSessionMonopolyManager(),
     private readonly typeRentSessionMonopolyManager = new TypeRentSessionMonopolyManager(),
@@ -60,7 +80,7 @@ export class EventCellSessionMonopolyManager {
     prisma,
     monopolyGateway,
     fetchSessionSnapshot,
-  }: EventCellSessionParams<TSession>) {
+  }: EventCellSessionParams<TSession>): Promise<TSession> {
     if (
       session.status !== MonopolyGameSessionStatus.ACTIVE ||
       !session.currentMovePlayerId
@@ -103,6 +123,25 @@ export class EventCellSessionMonopolyManager {
         prisma,
         monopolyGateway,
         fetchSessionSnapshot,
+        typePurchaseSessionMonopolyManager:
+          this.typePurchaseSessionMonopolyManager,
+        typeRentSessionMonopolyManager: this.typeRentSessionMonopolyManager,
+      })
+    }
+
+    if (
+      landedCell.type === MonopolyCellType.CHANCE ||
+      landedCell.type === MonopolyCellType.COMMUNITY ||
+      landedCell.type === MonopolyCellType.COMMUNITY_CHEST
+    ) {
+      return this.typeEventSessionMonopolyManager.handleEventCell({
+        sessionId,
+        session,
+        landedCell,
+        prisma,
+        monopolyGateway,
+        fetchSessionSnapshot,
+        typeStreetSessionMonopolyManager: this.typeStreetSessionMonopolyManager,
         typePurchaseSessionMonopolyManager:
           this.typePurchaseSessionMonopolyManager,
         typeRentSessionMonopolyManager: this.typeRentSessionMonopolyManager,
