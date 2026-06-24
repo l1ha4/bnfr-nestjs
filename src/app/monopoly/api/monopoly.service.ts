@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { CreateSessionDto } from './dto/create-session.dto'
 import { UpdatePlayerReadyDto } from './dto/update-player-ready.dto'
+import { CreateTradeOfferDto } from './dto/trade/createTradeOffer/create-trade-offer.dto'
 import type { Request } from 'express'
 import { ListSessionManager } from '../manager/listSession/list-session.manager'
 import { SessionManager } from '../manager/session/session.manager'
@@ -34,12 +35,32 @@ export class MonopolyService {
     return this.sessionManager.getSessionChatHistory(sessionId)
   }
 
+  async getIncomingTradeOffers(sessionId: string, req: Request) {
+    return this.sessionManager.getIncomingTradeOffers(sessionId, req)
+  }
+
   async createSessionChatMessage(
     sessionId: string,
     content: string,
     req: Request,
   ) {
     return this.sessionManager.createSessionChatMessage(sessionId, content, req)
+  }
+
+  async createTradeOffer(
+    sessionId: string,
+    dto: CreateTradeOfferDto,
+    req: Request,
+  ) {
+    return this.sessionManager.createTradeOffer(sessionId, dto, req)
+  }
+
+  async acceptTradeOffer(sessionId: string, offerId: string, req: Request) {
+    return this.sessionManager.acceptTradeOffer(sessionId, offerId, req)
+  }
+
+  async rejectTradeOffer(sessionId: string, offerId: string, req: Request) {
+    return this.sessionManager.rejectTradeOffer(sessionId, offerId, req)
   }
 
   async getFigurineCollections() {
@@ -78,8 +99,28 @@ export class MonopolyService {
     return this.sessionManager.rollTurn(id, req)
   }
 
+  async payJailFine(id: string, req: Request) {
+    return this.sessionManager.payJailFine(id, req)
+  }
+
+  async rollForJailEscape(id: string, req: Request) {
+    return this.sessionManager.rollForJailEscape(id, req)
+  }
+
   async buyStreet(id: string, cellId: string, req: Request) {
     return this.sessionManager.buyStreet(id, cellId, req)
+  }
+
+  async upgradeStreet(id: string, cellId: string, req: Request) {
+    return this.sessionManager.upgradeStreet(id, cellId, req)
+  }
+
+  async downgradeStreet(id: string, cellId: string, req: Request) {
+    return this.sessionManager.downgradeStreet(id, cellId, req)
+  }
+
+  async sellStreet(id: string, cellId: string, req: Request) {
+    return this.sessionManager.sellStreet(id, cellId, req)
   }
 
   async refusePurchase(id: string, req: Request) {

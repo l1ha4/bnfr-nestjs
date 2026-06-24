@@ -264,6 +264,9 @@ export class AuctionSessionMonopolyManager implements OnModuleDestroy {
           auctionId: auction.id,
           sessionPlayerId: player.id,
           queueIndex: index,
+          continuesAuction: player.userId !== currentPlayer.userId,
+          declinedAt:
+            player.userId === currentPlayer.userId ? new Date() : null,
         })),
       })
 

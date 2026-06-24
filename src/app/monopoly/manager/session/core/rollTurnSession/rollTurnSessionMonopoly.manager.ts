@@ -13,6 +13,7 @@ import type { Request } from 'express'
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
 import { EventCellSessionMonopolyManager } from '../eventCellSession/eventCellSessionMonopoly.manager'
 import { createSystemChatMessage } from '../chat/create-system-chat-message'
+import { changeTurnToNextPlayer } from '../changeTurn/change-turn-to-next-player'
 
 type RollTurnSessionCell = {
   id: string
@@ -35,9 +36,12 @@ type RollTurnSessionSnapshot = {
 
 type RollTurnSessionPlayer = {
   id: string
+  userId: string
   position: number
   money: number
 }
+
+type RollTurnMode = 'NORMAL' | 'JAIL_ATTEMPT' | 'JAIL_FINE'
 
 type RollTurnSessionParams<TSession extends RollTurnSessionSnapshot> = {
   sessionId: string
@@ -45,6 +49,7 @@ type RollTurnSessionParams<TSession extends RollTurnSessionSnapshot> = {
   prisma: PrismaService
   monopolyGateway: MonopolyWebsocketGateway
   fetchSessionSnapshot: (id: string) => Promise<TSession>
+  mode?: RollTurnMode
   req?: Request
 }
 
@@ -73,6 +78,7 @@ export const rollTurnSession = async <
   prisma,
   monopolyGateway,
   fetchSessionSnapshot,
+  mode = 'NORMAL',
 }: RollTurnSessionParams<TSession>): Promise<
   RollTurnSessionResult<TSession>
 > => {
@@ -93,6 +99,7 @@ export const rollTurnSession = async <
     },
     select: {
       id: true,
+      userId: true,
       position: true,
       money: true,
     },
@@ -117,12 +124,74 @@ export const rollTurnSession = async <
     throw new BadRequestException('У шаблона сессии нет клеток')
   }
 
+  const jailCell =
+    session.template.cells.find(
+      (cell) => cell.type === MonopolyCellType.JAIL,
+    ) ?? null
+
+  const isCurrentPlayerOnJail =
+    !!jailCell && currentPlayer.position === jailCell.orderIndex
+
+  if (mode === 'NORMAL' && isCurrentPlayerOnJail) {
+    throw new BadRequestException(
+      'Вы в тюрьме: оплатите 100 или выбросьте дубль',
+    )
+  }
+
+  if (
+    (mode === 'JAIL_ATTEMPT' || mode === 'JAIL_FINE') &&
+    !isCurrentPlayerOnJail
+  ) {
+    throw new BadRequestException(
+      'Тюремное действие недоступно вне клетки тюрьмы',
+    )
+  }
+
+  if (mode === 'JAIL_FINE' && currentPlayer.money < 100) {
+    throw new BadRequestException('Недостаточно денег для выхода из тюрьмы')
+  }
+
   const firstDie = rollD6()
   const secondDie = rollD6()
   const totalSteps = firstDie + secondDie
 
   const boardSize = session.template.cells.length
   const fromPosition = currentPlayer.position
+
+  if (mode === 'JAIL_ATTEMPT' && firstDie !== secondDie) {
+    await createSystemChatMessage({
+      prisma,
+      monopolyGateway,
+      sessionId,
+      userId: session.currentMovePlayerId,
+      userName: currentPlayerName,
+      content: `Игрок ${currentPlayerName} пытается выйти из тюрьмы и бросает ${firstDie} и ${secondDie}. Дубль не выпал`,
+    })
+
+    await changeTurnToNextPlayer({
+      prisma,
+      monopolyGateway,
+      sessionId,
+      currentMovePlayerId: session.currentMovePlayerId,
+    })
+
+    const updatedSession = await fetchSessionSnapshot(sessionId)
+
+    monopolyGateway.sendStateUpdated(sessionId, updatedSession)
+
+    return {
+      session: updatedSession,
+      dice: {
+        first: firstDie,
+        second: secondDie,
+        total: totalSteps,
+      },
+      fromPosition,
+      toPosition: fromPosition,
+      lapsCompleted: 0,
+    }
+  }
+
   const nextAbsolutePosition = fromPosition + totalSteps
   const lapsCompleted = Math.floor(nextAbsolutePosition / boardSize)
   const toPosition = normalizePosition(nextAbsolutePosition, boardSize)
@@ -131,7 +200,9 @@ export const rollTurnSession = async <
     null
 
   const moneyAfterMove =
-    currentPlayer.money + lapsCompleted * session.template.moneyPerLap
+    currentPlayer.money +
+    lapsCompleted * session.template.moneyPerLap -
+    (mode === 'JAIL_FINE' ? 100 : 0)
 
   await prisma.$transaction(async (tx) => {
     await tx.monopolyGameSessionPlayer.update({
@@ -151,7 +222,12 @@ export const rollTurnSession = async <
     sessionId,
     userId: session.currentMovePlayerId,
     userName: currentPlayerName,
-    content: `Игрок ${currentPlayerName} бросил кубики: ${firstDie} и ${secondDie} (сумма ${totalSteps})`,
+    content:
+      mode === 'JAIL_ATTEMPT'
+        ? `Игрок ${currentPlayerName} выбросил дубль ${firstDie} и ${secondDie}, выходит из тюрьмы и проходит ${totalSteps} клеток`
+        : mode === 'JAIL_FINE'
+          ? `Игрок ${currentPlayerName} оплачивает 100 за выход из тюрьмы и бросает кубики: ${firstDie} и ${secondDie} (сумма ${totalSteps})`
+          : `Игрок ${currentPlayerName} бросил кубики: ${firstDie} и ${secondDie} (сумма ${totalSteps})`,
   })
 
   const eventCellSessionMonopolyManager = new EventCellSessionMonopolyManager()

@@ -55,4 +55,24 @@ export class SessionWsService {
       .to(getMonopolySessionRoom(sessionId))
       .emit(MonopolySessionWsEvent.CHAT_MESSAGE_CREATED, payload)
   }
+
+  public sendTradeOfferCreated(
+    server: Server,
+    sessionId: string,
+    payload: unknown,
+  ) {
+    server
+      .to(getMonopolySessionRoom(sessionId))
+      .emit(MonopolySessionWsEvent.TRADE_OFFER_CREATED, payload)
+  }
+
+  public sendTradeOfferUpdated(
+    server: Server,
+    sessionId: string,
+    payload: unknown,
+  ) {
+    server
+      .to(getMonopolySessionRoom(sessionId))
+      .emit(MonopolySessionWsEvent.TRADE_OFFER_UPDATED, payload)
+  }
 }

@@ -82,4 +82,12 @@ export class MonopolyWebsocketGateway {
       payload,
     )
   }
+
+  public sendTradeOfferCreated(sessionId: string, payload: unknown) {
+    this.sessionWsService.sendTradeOfferCreated(this.server, sessionId, payload)
+  }
+
+  public sendTradeOfferUpdated(sessionId: string, payload: unknown) {
+    this.sessionWsService.sendTradeOfferUpdated(this.server, sessionId, payload)
+  }
 }

@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Req } from '@nestjs/common'
 import { MonopolyService } from '../../monopoly.service'
 import { Authorization } from '../../../../auth/decorators/auth.decorators'
 import { UpdatePlayerReadyDto } from '../../dto/update-player-ready.dto'
+import { CreateTradeOfferDto } from '../../dto/trade/createTradeOffer/create-trade-offer.dto'
 import type { Request } from 'express'
 import { MONOPOLY_API_PREFIX } from '../../config/monopolyApi.config'
 
@@ -61,5 +62,44 @@ export class SessionController {
   @Delete('session/:sessionId/exit')
   exitSession(@Param('sessionId') sessionId: string, @Req() req: Request) {
     return this.monopolyService.exitSession(sessionId, req)
+  }
+
+  @Authorization()
+  @Get('session/:sessionId/trade/offers/incoming')
+  getIncomingTradeOffers(
+    @Param('sessionId') sessionId: string,
+    @Req() req: Request,
+  ) {
+    return this.monopolyService.getIncomingTradeOffers(sessionId, req)
+  }
+
+  @Authorization()
+  @Post('session/:sessionId/trade/offer')
+  createTradeOffer(
+    @Param('sessionId') sessionId: string,
+    @Body() dto: CreateTradeOfferDto,
+    @Req() req: Request,
+  ) {
+    return this.monopolyService.createTradeOffer(sessionId, dto, req)
+  }
+
+  @Authorization()
+  @Post('session/:sessionId/trade/offer/:offerId/accept')
+  acceptTradeOffer(
+    @Param('sessionId') sessionId: string,
+    @Param('offerId') offerId: string,
+    @Req() req: Request,
+  ) {
+    return this.monopolyService.acceptTradeOffer(sessionId, offerId, req)
+  }
+
+  @Authorization()
+  @Post('session/:sessionId/trade/offer/:offerId/reject')
+  rejectTradeOffer(
+    @Param('sessionId') sessionId: string,
+    @Param('offerId') offerId: string,
+    @Req() req: Request,
+  ) {
+    return this.monopolyService.rejectTradeOffer(sessionId, offerId, req)
   }
 }

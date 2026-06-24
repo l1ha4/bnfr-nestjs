@@ -25,6 +25,12 @@ export class MonopolyTemplateCrudManagerService {
       dto,
     )
 
+    await this.monopolyTemplateManager.connectCardActionTargets(
+      this.prisma,
+      created.id,
+      dto,
+    )
+
     return created
   }
 
@@ -56,6 +62,8 @@ export class MonopolyTemplateCrudManagerService {
       })
 
       await this.monopolyTemplateManager.connectStreetCollections(tx, id, dto)
+
+      await this.monopolyTemplateManager.connectCardActionTargets(tx, id, dto)
 
       return updated
     })

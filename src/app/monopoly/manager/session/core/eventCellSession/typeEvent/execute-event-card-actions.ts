@@ -157,14 +157,27 @@ export const executeEventCardActions = async ({
       }
 
       if (action.actionType === MonopolyActionType.MOVE_TO_CELL) {
-        if (!action.targetCellId) {
+        let targetCellId = action.targetCellId
+
+        if (!targetCellId) {
+          const text = (action.text ?? '').toLowerCase()
+          const shouldMoveToStart = text.includes('старт') || text.includes('start')
+
+          if (shouldMoveToStart) {
+            targetCellId =
+              session.template.cells.find(
+                (cell) => cell.type === MonopolyCellType.START,
+              )?.id ?? null
+          }
+        }
+
+        if (!targetCellId) {
           throw new BadRequestException('Для события не задана целевая клетка')
         }
 
         const targetCell =
-          session.template.cells.find(
-            (cell) => cell.id === action.targetCellId,
-          ) ?? null
+          session.template.cells.find((cell) => cell.id === targetCellId) ??
+          null
 
         if (!targetCell) {
           throw new NotFoundException('Целевая клетка события не найдена')

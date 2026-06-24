@@ -12,6 +12,7 @@ import {
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../websocket/monopoly-websocket.gateway'
 import { createSystemChatMessage } from '../chat/create-system-chat-message'
+import { changeTurnToNextPlayer } from '../changeTurn/change-turn-to-next-player'
 import { TypeEventSessionMonopolyManager } from './typeEvent/type-event-session.monopoly.manager'
 import { TypePurchaseSessionMonopolyManager } from './typeStreet/typePurchase/type-purchase-session.monopoly.manager'
 import { TypeRentSessionMonopolyManager } from './typeStreet/typeRent/type-rent-session.monopoly.manager'
@@ -114,6 +115,110 @@ export class EventCellSessionMonopolyManager {
           ? `Игрок ${currentPlayerName} попал на улицу ${landedCell.name}`
           : `Игрок ${currentPlayerName} попал на клетку ${landedCell.name}`,
     })
+
+    if (landedCell.type === MonopolyCellType.START) {
+      await changeTurnToNextPlayer({
+        prisma,
+        monopolyGateway,
+        sessionId,
+        currentMovePlayerId: session.currentMovePlayerId,
+      })
+
+      const updatedSession = await fetchSessionSnapshot(sessionId)
+
+      monopolyGateway.sendStateUpdated(sessionId, updatedSession)
+
+      return updatedSession
+    }
+
+    if (landedCell.type === MonopolyCellType.PARKING) {
+      await changeTurnToNextPlayer({
+        prisma,
+        monopolyGateway,
+        sessionId,
+        currentMovePlayerId: session.currentMovePlayerId,
+      })
+
+      const updatedSession = await fetchSessionSnapshot(sessionId)
+
+      monopolyGateway.sendStateUpdated(sessionId, updatedSession)
+
+      return updatedSession
+    }
+
+    if (landedCell.type === MonopolyCellType.JAIL) {
+      await changeTurnToNextPlayer({
+        prisma,
+        monopolyGateway,
+        sessionId,
+        currentMovePlayerId: session.currentMovePlayerId,
+      })
+
+      const updatedSession = await fetchSessionSnapshot(sessionId)
+
+      monopolyGateway.sendStateUpdated(sessionId, updatedSession)
+
+      return updatedSession
+    }
+
+    if (landedCell.type === MonopolyCellType.GO_TO_JAIL) {
+      const jailCell =
+        session.template.cells.find(
+          (cell) => cell.type === MonopolyCellType.JAIL,
+        ) ?? null
+
+      if (!jailCell) {
+        throw new NotFoundException('Клетка тюрьмы не найдена')
+      }
+
+      const currentSessionPlayer =
+        await prisma.monopolyGameSessionPlayer.findUnique({
+          where: {
+            sessionId_userId: {
+              sessionId,
+              userId: session.currentMovePlayerId,
+            },
+          },
+          select: {
+            id: true,
+          },
+        })
+
+      if (!currentSessionPlayer) {
+        throw new NotFoundException('Игрок в сессии не найден')
+      }
+
+      await prisma.monopolyGameSessionPlayer.update({
+        where: {
+          id: currentSessionPlayer.id,
+        },
+        data: {
+          position: jailCell.orderIndex,
+        },
+      })
+
+      await createSystemChatMessage({
+        prisma,
+        monopolyGateway,
+        sessionId,
+        userId: session.currentMovePlayerId,
+        userName: currentPlayerName,
+        content: `Игрок ${currentPlayerName} отправляется в тюрьму`,
+      })
+
+      await changeTurnToNextPlayer({
+        prisma,
+        monopolyGateway,
+        sessionId,
+        currentMovePlayerId: session.currentMovePlayerId,
+      })
+
+      const updatedSession = await fetchSessionSnapshot(sessionId)
+
+      monopolyGateway.sendStateUpdated(sessionId, updatedSession)
+
+      return updatedSession
+    }
 
     if (landedCell.type === MonopolyCellType.STREET) {
       return this.typeStreetSessionMonopolyManager.handleStreetCell({

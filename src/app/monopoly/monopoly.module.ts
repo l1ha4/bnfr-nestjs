@@ -18,6 +18,9 @@ import { TypePurchaseSessionMonopolyManager } from './manager/session/core/event
 import { TypeRentSessionMonopolyManager } from './manager/session/core/eventCellSession/typeStreet/typeRent/type-rent-session.monopoly.manager'
 import { TypeAuctionSessionMonopolyManager } from './manager/session/core/eventCellSession/typeStreet/typeAuction/type-auction-session.monopoly.manager'
 import { AuctionSessionMonopolyManager } from './manager/session/core/auction/auction-session.monopoly.manager'
+import { TradeSessionMonopolyManager } from './manager/session/core/trade/manager/trade-session.monopoly.manager'
+import { TradeOfferStoreService } from './manager/session/core/trade/store/trade-offer.store.service'
+import { StreetUpgradeSessionMonopolyManager } from './manager/session/core/streetUpgrade/street-upgrade-session.monopoly.manager'
 
 @Module({
   imports: [MonopolyWebsocketModule],
@@ -42,6 +45,9 @@ import { AuctionSessionMonopolyManager } from './manager/session/core/auction/au
     TypeRentSessionMonopolyManager,
     TypeAuctionSessionMonopolyManager,
     AuctionSessionMonopolyManager,
+    TradeSessionMonopolyManager,
+    StreetUpgradeSessionMonopolyManager,
+    TradeOfferStoreService,
   ],
 })
 export class MonopolyModule {}

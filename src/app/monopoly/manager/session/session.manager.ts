@@ -8,6 +8,7 @@ import { MonopolyMoveType } from '@prisma/client'
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { CreateSessionDto } from '../../api/dto/create-session.dto'
 import { UpdatePlayerReadyDto } from '../../api/dto/update-player-ready.dto'
+import { CreateTradeOfferDto } from '../../api/dto/trade/createTradeOffer/create-trade-offer.dto'
 import { MonopolyWebsocketGateway } from '../../websocket/monopoly-websocket.gateway'
 import { ColorManager } from './connection/color/color.manager'
 import { FigurinesManager } from './connection/figurines/figurines.manager'
@@ -20,6 +21,8 @@ import { TypePurchaseSessionMonopolyManager } from './core/eventCellSession/type
 import { TypeAuctionSessionMonopolyManager } from './core/eventCellSession/typeStreet/typeAuction/type-auction-session.monopoly.manager'
 import { AuctionSessionMonopolyManager } from './core/auction/auction-session.monopoly.manager'
 import { TypeRentSessionMonopolyManager } from './core/eventCellSession/typeStreet/typeRent/type-rent-session.monopoly.manager'
+import { TradeSessionMonopolyManager } from './core/trade/manager/trade-session.monopoly.manager'
+import { StreetUpgradeSessionMonopolyManager } from './core/streetUpgrade/street-upgrade-session.monopoly.manager'
 
 @Injectable()
 export class SessionManager {
@@ -36,6 +39,8 @@ export class SessionManager {
     private readonly typeRentSessionMonopolyManager: TypeRentSessionMonopolyManager,
     private readonly typeAuctionSessionMonopolyManager: TypeAuctionSessionMonopolyManager,
     private readonly auctionSessionMonopolyManager: AuctionSessionMonopolyManager,
+    private readonly tradeSessionMonopolyManager: TradeSessionMonopolyManager,
+    private readonly streetUpgradeSessionMonopolyManager: StreetUpgradeSessionMonopolyManager,
   ) {}
 
   public async findSessionById(id: string) {
@@ -236,9 +241,38 @@ export class SessionManager {
       throw new NotFoundException('Сессия не найдена')
     }
 
+    this.tradeSessionMonopolyManager.clearSessionOffers(id)
     this.monopolyGateway.sendSessionDeleted(id)
 
     return true
+  }
+
+  public async getIncomingTradeOffers(sessionId: string, req: Request) {
+    return this.tradeSessionMonopolyManager.getIncomingOffers(sessionId, req)
+  }
+
+  public async createTradeOffer(
+    sessionId: string,
+    dto: CreateTradeOfferDto,
+    req: Request,
+  ) {
+    return this.tradeSessionMonopolyManager.createOffer(sessionId, dto, req)
+  }
+
+  public async acceptTradeOffer(
+    sessionId: string,
+    offerId: string,
+    req: Request,
+  ) {
+    return this.tradeSessionMonopolyManager.acceptOffer(sessionId, offerId, req)
+  }
+
+  public async rejectTradeOffer(
+    sessionId: string,
+    offerId: string,
+    req: Request,
+  ) {
+    return this.tradeSessionMonopolyManager.rejectOffer(sessionId, offerId, req)
   }
 
   public async exitSession(id: string, req: Request) {
@@ -314,6 +348,56 @@ export class SessionManager {
     })
   }
 
+  public async payJailFine(id: string, req: Request) {
+    const userId = req.session.userId
+
+    const session = await this.playerReadyManager.findSessionById(id)
+
+    if (session.currentMovePlayerId !== userId) {
+      throw new BadRequestException('Сейчас не ваш ход')
+    }
+
+    if (session.currentTypeMove !== MonopolyMoveType.DICE_ROLL_ON_THE_MOVE) {
+      throw new BadRequestException('Выход из тюрьмы сейчас недоступен')
+    }
+
+    return rollTurnSession({
+      sessionId: id,
+      session,
+      prisma: this.prisma,
+      monopolyGateway: this.monopolyGateway,
+      fetchSessionSnapshot: this.playerReadyManager.findSessionById.bind(
+        this.playerReadyManager,
+      ),
+      mode: 'JAIL_FINE',
+    })
+  }
+
+  public async rollForJailEscape(id: string, req: Request) {
+    const userId = req.session.userId
+
+    const session = await this.playerReadyManager.findSessionById(id)
+
+    if (session.currentMovePlayerId !== userId) {
+      throw new BadRequestException('Сейчас не ваш ход')
+    }
+
+    if (session.currentTypeMove !== MonopolyMoveType.DICE_ROLL_ON_THE_MOVE) {
+      throw new BadRequestException('Выход из тюрьмы сейчас недоступен')
+    }
+
+    return rollTurnSession({
+      sessionId: id,
+      session,
+      prisma: this.prisma,
+      monopolyGateway: this.monopolyGateway,
+      fetchSessionSnapshot: this.playerReadyManager.findSessionById.bind(
+        this.playerReadyManager,
+      ),
+      mode: 'JAIL_ATTEMPT',
+    })
+  }
+
   public async buyStreet(id: string, cellId: string, req: Request) {
     const userId = req.session.userId
 
@@ -356,6 +440,81 @@ export class SessionManager {
       sessionId: id,
       session,
       landedCell: cellTemplate,
+      prisma: this.prisma,
+      monopolyGateway: this.monopolyGateway,
+      fetchSessionSnapshot: this.playerReadyManager.findSessionById.bind(
+        this.playerReadyManager,
+      ),
+    })
+  }
+
+  public async upgradeStreet(id: string, cellId: string, req: Request) {
+    const userId = req.session.userId
+
+    const session = await this.playerReadyManager.findSessionById(id)
+
+    if (session.currentMovePlayerId !== userId) {
+      throw new BadRequestException('Сейчас не ваш ход')
+    }
+
+    if (session.currentTypeMove !== MonopolyMoveType.DICE_ROLL_ON_THE_MOVE) {
+      throw new BadRequestException('Улучшение улицы сейчас недоступно')
+    }
+
+    return this.streetUpgradeSessionMonopolyManager.upgradeStreet({
+      sessionId: id,
+      session,
+      cellId,
+      prisma: this.prisma,
+      monopolyGateway: this.monopolyGateway,
+      fetchSessionSnapshot: this.playerReadyManager.findSessionById.bind(
+        this.playerReadyManager,
+      ),
+    })
+  }
+
+  public async downgradeStreet(id: string, cellId: string, req: Request) {
+    const userId = req.session.userId
+
+    const session = await this.playerReadyManager.findSessionById(id)
+
+    if (session.currentMovePlayerId !== userId) {
+      throw new BadRequestException('Сейчас не ваш ход')
+    }
+
+    if (session.currentTypeMove !== MonopolyMoveType.DICE_ROLL_ON_THE_MOVE) {
+      throw new BadRequestException('Продажа улучшения сейчас недоступна')
+    }
+
+    return this.streetUpgradeSessionMonopolyManager.downgradeStreet({
+      sessionId: id,
+      session,
+      cellId,
+      prisma: this.prisma,
+      monopolyGateway: this.monopolyGateway,
+      fetchSessionSnapshot: this.playerReadyManager.findSessionById.bind(
+        this.playerReadyManager,
+      ),
+    })
+  }
+
+  public async sellStreet(id: string, cellId: string, req: Request) {
+    const userId = req.session.userId
+
+    const session = await this.playerReadyManager.findSessionById(id)
+
+    if (session.currentMovePlayerId !== userId) {
+      throw new BadRequestException('Сейчас не ваш ход')
+    }
+
+    if (session.currentTypeMove !== MonopolyMoveType.DICE_ROLL_ON_THE_MOVE) {
+      throw new BadRequestException('Продажа улицы сейчас недоступна')
+    }
+
+    return this.streetUpgradeSessionMonopolyManager.sellStreet({
+      sessionId: id,
+      session,
+      cellId,
       prisma: this.prisma,
       monopolyGateway: this.monopolyGateway,
       fetchSessionSnapshot: this.playerReadyManager.findSessionById.bind(

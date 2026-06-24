@@ -51,6 +51,8 @@ type MonopolyStreetCollectionInput = {
 type MonopolyCardActionInput = {
   actionType: string
   amount?: number | null
+  target?: string | null
+  targetCellId?: string | null
   text?: string | null
 }
 
@@ -192,6 +194,121 @@ export class MonopolyTemplateManagerService {
           collectionId: collection.id,
         },
       })
+    }
+  }
+
+  public async connectCardActionTargets(
+    prisma: Prisma.TransactionClient | PrismaService,
+    templateId: string,
+    dto: CreateMonopolyFormDto,
+  ): Promise<void> {
+    const events = dto.events as MonopolyEventGroupInput[]
+
+    if (!Array.isArray(events) || events.length === 0) {
+      return
+    }
+
+    const [cells, cardGroups] = await Promise.all([
+      prisma.monopolyCellTemplate.findMany({
+        where: {
+          templateId,
+        },
+        select: {
+          id: true,
+          orderIndex: true,
+        },
+      }),
+      prisma.monopolyCardGroupTemplate.findMany({
+        where: {
+          templateId,
+        },
+        orderBy: {
+          createdAt: 'asc',
+        },
+        select: {
+          cards: {
+            orderBy: {
+              createdAt: 'asc',
+            },
+            select: {
+              actions: {
+                orderBy: {
+                  createdAt: 'asc',
+                },
+                select: {
+                  id: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+    ])
+
+    const cellIdByIndex = new Map<number, string>(
+      cells.map((cell) => [cell.orderIndex, cell.id]),
+    )
+    const existingCellIds = new Set(cells.map((cell) => cell.id))
+
+    for (let groupIndex = 0; groupIndex < events.length; groupIndex += 1) {
+      const dtoGroup = events[groupIndex]
+      const dbGroup = cardGroups[groupIndex]
+
+      if (!dtoGroup || !dbGroup) {
+        continue
+      }
+
+      const dtoCards = dtoGroup.actions ?? []
+
+      for (let cardIndex = 0; cardIndex < dtoCards.length; cardIndex += 1) {
+        const dtoCard = dtoCards[cardIndex]
+        const dbCard = dbGroup.cards[cardIndex]
+
+        if (!dtoCard || !dbCard) {
+          continue
+        }
+
+        const dtoActions = dtoCard.actions ?? []
+
+        for (
+          let actionIndex = 0;
+          actionIndex < dtoActions.length;
+          actionIndex += 1
+        ) {
+          const dtoAction = dtoActions[actionIndex]
+          const dbAction = dbCard.actions[actionIndex]
+
+          if (!dtoAction || !dbAction) {
+            continue
+          }
+
+          const targetRef = dtoAction.targetCellId ?? dtoAction.target ?? null
+
+          if (!targetRef) {
+            continue
+          }
+
+          const targetCellId = existingCellIds.has(targetRef)
+            ? targetRef
+            : (() => {
+                const index = this.extractCellIndex(targetRef)
+                return index == null ? null : (cellIdByIndex.get(index) ?? null)
+              })()
+
+          if (!targetCellId) {
+            continue
+          }
+
+          await prisma.monopolyCardActionTemplate.update({
+            where: {
+              id: dbAction.id,
+            },
+            data: {
+              targetCellId,
+            },
+          })
+        }
+      }
     }
   }
 

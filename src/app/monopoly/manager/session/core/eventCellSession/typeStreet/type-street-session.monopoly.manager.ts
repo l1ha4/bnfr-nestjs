@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '@/core/prisma/prisma.service'
 import { MonopolyWebsocketGateway } from '../../../../../websocket/monopoly-websocket.gateway'
 import { createSystemChatMessage } from '../../chat/create-system-chat-message'
+import { changeTurnToNextPlayer } from '../../changeTurn/change-turn-to-next-player'
 import { TypePurchaseSessionMonopolyManager } from './typePurchase/type-purchase-session.monopoly.manager'
 import { TypeRentSessionMonopolyManager } from './typeRent/type-rent-session.monopoly.manager'
 
@@ -122,6 +123,41 @@ export class TypeStreetSessionMonopolyManager {
         monopolyGateway,
         fetchSessionSnapshot,
       })
+    }
+
+    if (streetProperty.ownerUserId === session.currentMovePlayerId) {
+      const currentPlayer = await prisma.user.findUnique({
+        where: {
+          id: session.currentMovePlayerId,
+        },
+        select: {
+          displayName: true,
+        },
+      })
+
+      const currentPlayerName = currentPlayer?.displayName ?? 'Игрок'
+
+      await createSystemChatMessage({
+        prisma,
+        monopolyGateway,
+        sessionId,
+        userId: session.currentMovePlayerId,
+        userName: currentPlayerName,
+        content: `Игрок ${currentPlayerName} попал на свою улицу ${landedCell.name}. Аренда не взимается.`,
+      })
+
+      await changeTurnToNextPlayer({
+        prisma,
+        monopolyGateway,
+        sessionId,
+        currentMovePlayerId: session.currentMovePlayerId,
+      })
+
+      const updatedSession = await fetchSessionSnapshot(sessionId)
+
+      monopolyGateway.sendStateUpdated(sessionId, updatedSession)
+
+      return updatedSession
     }
 
     this.logger.warn(

@@ -1,4 +1,11 @@
-import { BadRequestException, Body, Controller, Param, Post, Req } from '@nestjs/common'
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Param,
+  Post,
+  Req,
+} from '@nestjs/common'
 import { UserRole } from '@prisma/client'
 import { MonopolyService } from '../../monopoly.service'
 import { Authorization } from '../../../../auth/decorators/auth.decorators'
@@ -16,6 +23,21 @@ export class GameActionsController {
   }
 
   @Authorization()
+  @Post('session/:sessionId/jail/pay-fine')
+  payJailFine(@Param('sessionId') sessionId: string, @Req() req: Request) {
+    return this.monopolyService.payJailFine(sessionId, req)
+  }
+
+  @Authorization()
+  @Post('session/:sessionId/jail/roll')
+  rollForJailEscape(
+    @Param('sessionId') sessionId: string,
+    @Req() req: Request,
+  ) {
+    return this.monopolyService.rollForJailEscape(sessionId, req)
+  }
+
+  @Authorization()
   @Post('session/:sessionId/buy-street/:cellId')
   buyStreet(
     @Param('sessionId') sessionId: string,
@@ -23,6 +45,36 @@ export class GameActionsController {
     @Req() req: Request,
   ) {
     return this.monopolyService.buyStreet(sessionId, cellId, req)
+  }
+
+  @Authorization()
+  @Post('session/:sessionId/street/:cellId/upgrade')
+  upgradeStreet(
+    @Param('sessionId') sessionId: string,
+    @Param('cellId') cellId: string,
+    @Req() req: Request,
+  ) {
+    return this.monopolyService.upgradeStreet(sessionId, cellId, req)
+  }
+
+  @Authorization()
+  @Post('session/:sessionId/street/:cellId/downgrade')
+  downgradeStreet(
+    @Param('sessionId') sessionId: string,
+    @Param('cellId') cellId: string,
+    @Req() req: Request,
+  ) {
+    return this.monopolyService.downgradeStreet(sessionId, cellId, req)
+  }
+
+  @Authorization()
+  @Post('session/:sessionId/street/:cellId/sell')
+  sellStreet(
+    @Param('sessionId') sessionId: string,
+    @Param('cellId') cellId: string,
+    @Req() req: Request,
+  ) {
+    return this.monopolyService.sellStreet(sessionId, cellId, req)
   }
 
   @Authorization()
