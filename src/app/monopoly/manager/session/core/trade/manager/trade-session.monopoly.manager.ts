@@ -26,8 +26,18 @@ export class TradeSessionMonopolyManager {
     private readonly tradeOfferStoreService: TradeOfferStoreService,
   ) {}
 
-  public async getIncomingOffers(sessionId: string, req: Request) {
+  private requireCurrentUserId(req: Request): string {
     const currentUserId = req.session.userId
+
+    if (!currentUserId) {
+      throw new BadRequestException('Пользователь не авторизован')
+    }
+
+    return currentUserId
+  }
+
+  public async getIncomingOffers(sessionId: string, req: Request) {
+    const currentUserId = this.requireCurrentUserId(req)
 
     return this.tradeOfferStoreService.getIncomingPending(
       sessionId,
@@ -40,7 +50,7 @@ export class TradeSessionMonopolyManager {
     dto: CreateTradeOfferDto,
     req: Request,
   ): Promise<MonopolyTradeOffer> {
-    const fromUserId = req.session.userId
+    const fromUserId = this.requireCurrentUserId(req)
     const giveMoney = Math.max(0, Number(dto.giveMoney ?? 0))
     const getMoney = Math.max(0, Number(dto.getMoney ?? 0))
     const giveStreetCellTemplateIds = Array.from(
@@ -229,7 +239,7 @@ export class TradeSessionMonopolyManager {
   }
 
   public async acceptOffer(sessionId: string, offerId: string, req: Request) {
-    const currentUserId = req.session.userId
+    const currentUserId = this.requireCurrentUserId(req)
     const offer = this.tradeOfferStoreService.getById(offerId)
 
     if (!offer || offer.sessionId !== sessionId) {
@@ -406,7 +416,7 @@ export class TradeSessionMonopolyManager {
   }
 
   public async rejectOffer(sessionId: string, offerId: string, req: Request) {
-    const currentUserId = req.session.userId
+    const currentUserId = this.requireCurrentUserId(req)
     const offer = this.tradeOfferStoreService.getById(offerId)
 
     if (!offer || offer.sessionId !== sessionId) {
